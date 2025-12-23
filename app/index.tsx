@@ -1,62 +1,95 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { surahs } from '@/data/surahs';
+import * as NavigationBar from 'expo-navigation-bar';
 import { useRouter } from 'expo-router';
-import { FlatList, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
+import React, { useEffect } from 'react';
+import {
+  FlatList,
+  Platform,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function HomeScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+
+  useEffect(() => {
+    if (Platform.OS === 'android') {
+      NavigationBar.setVisibilityAsync("hidden");
+    }
+  }, []);
 
   return (
-    <ScrollView style={styles.container}>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">سور القرآن</ThemedText>
+    <View style={styles.screen}>
+      <StatusBar hidden={true} translucent={true} />
+
+      <ThemedView style={styles.mainContainer}>
+        <FlatList
+          data={surahs}
+          keyExtractor={(item) => item.id.toString()}
+          ListHeaderComponent={
+            <ThemedView style={[styles.titleContainer, { paddingTop: insets.top + 20 }]}>
+              <ThemedText type="title" style={styles.headerTitle}>
+                سور القرآن
+              </ThemedText>
+            </ThemedView>
+          }
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              // On envoie l'ID (1, 2, 3...)
+              onPress={() => router.push(`/quran-reader?id=${item.id}`)}
+              style={styles.surahItem}
+              activeOpacity={0.7}
+            >
+              <View style={styles.surahInfo}>
+                <ThemedText type="subtitle" style={styles.arabicName}>
+                  {item.id}. {item.name_ar}
+                </ThemedText>
+                <ThemedText style={styles.englishName}>
+                  {item.name_en} — {item.pages} pages
+                </ThemedText>
+              </View>
+              <View style={styles.indicator} />
+            </TouchableOpacity>
+          )}
+          contentContainerStyle={{
+            paddingBottom: insets.bottom + 20 
+          }}
+        />
       </ThemedView>
-      <FlatList
-        data={surahs}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            onPress={() => router.push(`/quran-reader?id=${item.id}`)}
-            style={styles.surahItem}
-          >
-            <ThemedText type="subtitle">{item.id}. {item.name_ar}</ThemedText>
-            <ThemedText>{item.name_en}</ThemedText>
-          </TouchableOpacity>
-        )}
-      />
-    </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+  screen: { flex: 1, backgroundColor: '#4CAF50' },
+  mainContainer: { flex: 1, backgroundColor: '#f8f9fa' },
   titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    padding: 16,
+    paddingBottom: 30,
+    paddingHorizontal: 24,
     backgroundColor: '#4CAF50',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
+    alignItems: 'center',
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
   },
-  listContainer: {
-    padding: 16,
-  },
+  headerTitle: { color: '#FFFFFF', fontSize: 32, fontWeight: 'bold' },
   surahItem: {
-    padding: 16,
-    marginVertical: 4,
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    padding: 20,
+    marginHorizontal: 16,
+    marginVertical: 8,
     backgroundColor: '#FFFFFF',
-    borderRadius: 8,
-    borderLeftWidth: 4,
-    borderLeftColor: '#4CAF50',
+    borderRadius: 15,
+    elevation: 4,
   },
+  surahInfo: { flex: 1, alignItems: 'flex-end' },
+  arabicName: { fontSize: 22, color: '#1b5e20', fontWeight: 'bold' },
+  englishName: { fontSize: 14, color: '#616161' },
+  indicator: { width: 6, height: '100%', backgroundColor: '#4CAF50', borderRadius: 3, marginLeft: 15 },
 });
