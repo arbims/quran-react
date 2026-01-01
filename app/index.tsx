@@ -51,7 +51,7 @@ export default function HomeScreen() {
                   {item.id}. {item.name_ar}
                 </ThemedText>
                 <ThemedText style={styles.englishName}>
-                  {item.name_en} — {item.pages} pages
+                  {item.name_en} — {item.pages} صفحة
                 </ThemedText>
               </View>
               <View style={styles.indicator} />
@@ -67,29 +67,78 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#4CAF50' },
-  mainContainer: { flex: 1, backgroundColor: '#f8f9fa' },
+  screen: { flex: 1, backgroundColor: '#0D47A1' },
+  mainContainer: { flex: 1, backgroundColor: '#F5F9FC' },
   titleContainer: {
-    paddingBottom: 30,
+    paddingBottom: 40,
     paddingHorizontal: 24,
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#1565C0',
     alignItems: 'center',
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
+    borderBottomLeftRadius: 40,
+    borderBottomRightRadius: 40,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 20,
+    elevation: 16,
+    borderBottomWidth: 3,
+    borderBottomColor: '#FFB300',
   },
-  headerTitle: { color: '#FFFFFF', fontSize: 32, fontWeight: 'bold' },
+  headerTitle: { 
+    color: '#FFFFFF', 
+    fontSize: 42, 
+    fontWeight: '800',
+    letterSpacing: 1.5,
+    textShadowColor: 'rgba(255, 179, 0, 0.6)',
+    textShadowOffset: { width: 0, height: 4 },
+    textShadowRadius: 8,
+  },
   surahItem: {
     flexDirection: 'row-reverse',
     alignItems: 'center',
-    padding: 20,
+    padding: 24,
     marginHorizontal: 16,
-    marginVertical: 8,
+    marginVertical: 10,
     backgroundColor: '#FFFFFF',
-    borderRadius: 15,
-    elevation: 4,
+    borderRadius: 24,
+    shadowColor: '#1565C0',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    elevation: 8,
+    borderLeftWidth: 6,
+    borderLeftColor: '#FFB300',
+    borderTopWidth: 0.5,
+    borderTopColor: 'rgba(225, 245, 254, 0.3)',
+    borderRightWidth: 0.5,
+    borderRightColor: 'rgba(225, 245, 254, 0.3)',
+    borderBottomWidth: 0.5,
+    borderBottomColor: 'rgba(225, 245, 254, 0.3)',
   },
   surahInfo: { flex: 1, alignItems: 'flex-end' },
-  arabicName: { fontSize: 22, color: '#1b5e20', fontWeight: 'bold' },
-  englishName: { fontSize: 14, color: '#616161' },
-  indicator: { width: 6, height: '100%', backgroundColor: '#4CAF50', borderRadius: 3, marginLeft: 15 },
+  arabicName: { 
+    fontSize: 28, 
+    color: '#1565C0', 
+    fontWeight: '800',
+    letterSpacing: 1,
+    marginBottom: 8,
+  },
+  englishName: { 
+    fontSize: 17, 
+    color: '#64B5F6',
+    fontWeight: '600',
+    letterSpacing: 0.4,
+  },
+  indicator: { 
+    width: 7, 
+    height: '88%', 
+    backgroundColor: '#FFB300', 
+    borderRadius: 8, 
+    marginLeft: 20,
+    shadowColor: '#FFB300',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 6,
+  },
 });
