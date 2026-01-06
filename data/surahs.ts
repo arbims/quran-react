@@ -16,7 +16,7 @@ export const surahs = [
   { id: 15, name_ar: 'الحجر', name_en: 'Al-Hijr', startPage: 262, pages: 6 },
   { id: 16, name_ar: 'النحل', name_en: 'An-Nahl', startPage: 268, pages: 14 },
   { id: 17, name_ar: 'الإسراء', name_en: 'Al-Isra', startPage: 282, pages: 12 },
-  { id: 18, name_ar: 'الكهف', name_en: 'Al-Kahf', startPage: 294, pages: 11 },
+  { id: 18, name_ar: 'الكهف', name_en: 'Al-Kahf', startPage: 293, pages: 12 },
   { id: 19, name_ar: 'مريم', name_en: 'Maryam', startPage: 305, pages: 7 },
   { id: 20, name_ar: 'طه', name_en: 'Ta-Ha', startPage: 312, pages: 10 },
   { id: 21, name_ar: 'الأنبياء', name_en: 'Al-Anbiya', startPage: 322, pages: 10 },
