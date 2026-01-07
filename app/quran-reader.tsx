@@ -830,12 +830,18 @@ interface PageItemProps {
   height: number;
   isLandscape: boolean;
   insets: { top: number; bottom: number };
+  navbarVisible: boolean;
+  onToggleNavbar: () => void;
 }
 
-const PageItem = React.memo<PageItemProps>(({ item, width, height, isLandscape, insets }) => {
-  const navbarHeight = isLandscape ? Math.max(insets.top, 8) + 40 + 4 : insets.top + 48;
+const PageItem = React.memo<PageItemProps>(({ item, width, height, isLandscape, insets, navbarVisible, onToggleNavbar }) => {
+  const navbarHeight = isLandscape ? (navbarVisible ? Math.max(insets.top, 8) + 40 + 4 : Math.max(insets.top, 8)) : insets.top + 48;
   const bottomInset = isLandscape ? Math.max(insets.bottom, 60) : insets.bottom;
   const containerHeight = height - navbarHeight;
+  const scrollViewRef = useRef<ScrollView>(null);
+  const isScrollingRef = useRef<boolean>(false);
+  const lastTapTime = useRef<number>(0);
+  const tapTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   if (isLandscape) {
     // Mode paysage : image avec padding horizontal, hauteur auto et scroll
@@ -845,12 +851,16 @@ const PageItem = React.memo<PageItemProps>(({ item, width, height, isLandscape, 
     const imageHeight = imageWidth * imageAspectRatio;
     
     return (
-      <View style={{ 
-        width: width, 
-        height: containerHeight,
-        backgroundColor: '#fff'
-      }}>
+      <View 
+        style={{ 
+          width: width, 
+          height: containerHeight,
+          backgroundColor: '#fff',
+          flexDirection: 'row'
+        }}
+      >
         <ScrollView 
+          ref={scrollViewRef}
           style={{ flex: 1 }}
           contentContainerStyle={{ 
             paddingHorizontal: horizontalPadding,
@@ -859,16 +869,88 @@ const PageItem = React.memo<PageItemProps>(({ item, width, height, isLandscape, 
           }}
           showsVerticalScrollIndicator={true}
           bounces={true}
+          scrollEnabled={true}
+          nestedScrollEnabled={true}
+          scrollEventThrottle={16}
+          onScrollBeginDrag={() => {
+            isScrollingRef.current = true;
+            if (tapTimeoutRef.current) {
+              clearTimeout(tapTimeoutRef.current);
+              tapTimeoutRef.current = null;
+            }
+            lastTapTime.current = 0;
+          }}
+          onScrollEndDrag={() => {
+            // Réinitialiser après un court délai
+            setTimeout(() => {
+              isScrollingRef.current = false;
+            }, 200);
+          }}
+          onMomentumScrollBegin={() => {
+            isScrollingRef.current = true;
+          }}
+          onMomentumScrollEnd={() => {
+            isScrollingRef.current = false;
+          }}
+          onScroll={() => {
+            // Annuler tout tap en cours si on scroll
+            if (tapTimeoutRef.current) {
+              clearTimeout(tapTimeoutRef.current);
+              tapTimeoutRef.current = null;
+            }
+            lastTapTime.current = 0;
+          }}
         >
-          <Image 
-            source={item.source} 
-            style={{ 
-              width: imageWidth,
-              height: imageHeight
+          <View
+            style={{ width: imageWidth, height: imageHeight }}
+            onStartShouldSetResponder={() => {
+              // Ne capturer que si on n'est pas en train de scroller
+              return !isScrollingRef.current;
             }}
-            contentFit="contain"
-            cachePolicy="memory-disk"
-          />
+            onMoveShouldSetResponder={() => {
+              // Ne jamais capturer les mouvements
+              return false;
+            }}
+            onResponderGrant={() => {
+              const now = Date.now();
+              // Détecter un double-tap
+              if (now - lastTapTime.current < 400 && !isScrollingRef.current) {
+                // Double tap détecté
+                onToggleNavbar();
+                lastTapTime.current = 0;
+                if (tapTimeoutRef.current) {
+                  clearTimeout(tapTimeoutRef.current);
+                  tapTimeoutRef.current = null;
+                }
+              } else {
+                lastTapTime.current = now;
+                // Si pas de scroll pendant 400ms, c'est un tap simple
+                if (tapTimeoutRef.current) {
+                  clearTimeout(tapTimeoutRef.current);
+                }
+                tapTimeoutRef.current = setTimeout(() => {
+                  if (!isScrollingRef.current) {
+                    onToggleNavbar();
+                  }
+                  lastTapTime.current = 0;
+                }, 400);
+              }
+            }}
+            onResponderTerminationRequest={() => {
+              // Toujours permettre la terminaison pour le scroll
+              return true;
+            }}
+          >
+            <Image 
+              source={item.source} 
+              style={{ 
+                width: imageWidth,
+                height: imageHeight
+              }}
+              contentFit="contain"
+              cachePolicy="memory-disk"
+            />
+          </View>
         </ScrollView>
       </View>
     );
@@ -890,7 +972,8 @@ const PageItem = React.memo<PageItemProps>(({ item, width, height, isLandscape, 
     prevProps.height === nextProps.height &&
     prevProps.isLandscape === nextProps.isLandscape &&
     prevProps.insets.top === nextProps.insets.top &&
-    prevProps.insets.bottom === nextProps.insets.bottom
+    prevProps.insets.bottom === nextProps.insets.bottom &&
+    prevProps.navbarVisible === nextProps.navbarVisible
   );
 });
 
@@ -935,6 +1018,14 @@ export default function QuranReaderScreen() {
   const [menuVisible, setMenuVisible] = useState(false);
   const [pageInputVisible, setPageInputVisible] = useState(false);
   const [pageInputValue, setPageInputValue] = useState('');
+  const [navbarVisible, setNavbarVisible] = useState(true);
+
+  // Si on revient en mode portrait, forcer la navbar à réapparaître
+  useEffect(() => {
+    if (!isLandscape && !navbarVisible) {
+      setNavbarVisible(true);
+    }
+  }, [isLandscape, navbarVisible]);
 
   // Fonction pour trouver la sourate actuelle
   const getCurrentSurah = () => {
@@ -1100,39 +1191,43 @@ export default function QuranReaderScreen() {
       <StatusBar hidden={false} barStyle="light-content" translucent={true} />
 
       {/* Navbar en haut */}
-      <View style={[styles.navbar, { 
-        paddingTop: isLandscape ? Math.max(insets.top, 8) + 4 : insets.top + 4,
-        paddingBottom: isLandscape ? Math.max(insets.bottom, 8) + 4 : 6,
-        minHeight: isLandscape ? 40 : 44,
-        paddingRight: isLandscape ? Math.max(insets.right, 8) : 12,
-        paddingLeft: isLandscape ? Math.max(insets.left, 8) : 12
-      }]}>
-        <View style={styles.navbarLeft}>
-          <Text style={styles.navbarPageNumber}>صفحة {currentPage}</Text>
-        </View>
-        <View style={styles.navbarCenter}>
-          <View style={styles.badgesContainer}>
-            {currentPage === lastReadPage && (
-              <View style={styles.readingBadge}>
-                <Text style={styles.badgeText}>📖</Text>
-              </View>
-            )}
-            {currentPage === hifdhPage && (
-              <View style={styles.hifdhBadge}>
-                <Text style={styles.badgeText}>🧠</Text>
-              </View>
+      {navbarVisible && (
+        <View 
+          style={[styles.navbar, { 
+            paddingTop: isLandscape ? Math.max(insets.top, 8) + 4 : insets.top + 4,
+            paddingBottom: isLandscape ? Math.max(insets.bottom, 8) + 4 : 6,
+            minHeight: isLandscape ? 40 : 44,
+            paddingRight: isLandscape ? Math.max(insets.right, 8) : 12,
+            paddingLeft: isLandscape ? Math.max(insets.left, 8) : 12
+          }]}
+        >
+          <View style={styles.navbarLeft}>
+            <Text style={styles.navbarPageNumber}>صفحة {currentPage}</Text>
+          </View>
+          <View style={styles.navbarCenter}>
+            <View style={styles.badgesContainer}>
+              {currentPage === lastReadPage && (
+                <View style={styles.readingBadge}>
+                  <Text style={styles.badgeText}>📖</Text>
+                </View>
+              )}
+              {currentPage === hifdhPage && (
+                <View style={styles.hifdhBadge}>
+                  <Text style={styles.badgeText}>🧠</Text>
+                </View>
+              )}
+            </View>
+          </View>
+          <View style={styles.navbarRight}>
+            {currentSurah && (
+              <Text style={styles.navbarTitle}>{currentSurah.name_ar}</Text>
             )}
           </View>
+          <TouchableOpacity onPress={toggleMenu} style={styles.menuButton}>
+            <Text style={styles.menuButtonText}>☰</Text>
+          </TouchableOpacity>
         </View>
-        <View style={styles.navbarRight}>
-          {currentSurah && (
-            <Text style={styles.navbarTitle}>{currentSurah.name_ar}</Text>
-          )}
-        </View>
-        <TouchableOpacity onPress={toggleMenu} style={styles.menuButton}>
-          <Text style={styles.menuButtonText}>☰</Text>
-        </TouchableOpacity>
-      </View>
+      )}
       
       <FlatList
         ref={flatListRef}
@@ -1145,20 +1240,26 @@ export default function QuranReaderScreen() {
         viewabilityConfig={{ itemVisiblePercentThreshold: 50 }}
         getItemLayout={(_, index) => ({ length: width, offset: width * index, index })}
         style={{ 
-          marginTop: isLandscape ? Math.max(insets.top, 8) + 40 + 4 : insets.top + 48, 
+          marginTop: navbarVisible ? (isLandscape ? Math.max(insets.top, 8) + 40 + 4 : insets.top + 48) : (isLandscape ? Math.max(insets.top, 8) : insets.top), 
           direction: 'ltr' 
         }}
         key={`flatlist-${width}-${height}`}
         extraData={isLandscape}
-        renderItem={({ item }) => (
-          <PageItem 
-            item={item} 
-            width={width} 
-            height={height} 
-            isLandscape={isLandscape} 
-            insets={insets}
-          />
-        )}
+          renderItem={({ item }) => (
+            <PageItem 
+              item={item} 
+              width={width} 
+              height={height} 
+              isLandscape={isLandscape} 
+              insets={insets}
+              navbarVisible={navbarVisible}
+              onToggleNavbar={() => {
+                if (isLandscape) {
+                  setNavbarVisible(!navbarVisible);
+                }
+              }}
+            />
+          )}
         keyExtractor={(item) => `page-${item.number}`}
         onScrollToIndexFailed={info => {
           flatListRef.current?.scrollToOffset({ offset: info.averageItemLength * info.index, animated: false });
@@ -1364,10 +1465,10 @@ const styles = StyleSheet.create({
   overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 10 },
   sidebar: { position: 'absolute', right: 0, top: 0, bottom: 0, width: SIDEBAR_WIDTH, backgroundColor: '#445CEB', zIndex: 20, paddingHorizontal: 15, borderTopLeftRadius: 20, borderBottomLeftRadius: 20, elevation: 10, direction: 'ltr' },
   sidebarHeader: { marginTop: 10, marginBottom: 10 },
-  sidebarTitle: { fontSize: 24, fontWeight: 'bold', color: '#FFFFFF', textAlign: 'right', marginBottom: 6 },
-  pageIndicator: { textAlign: 'right', color: 'rgba(255, 255, 255, 0.9)', fontSize: 16 },
+  sidebarTitle: { fontSize: 24, fontWeight: 'bold', color: '#FFFFFF', textAlign: 'right', marginBottom: 6, marginRight: 12 },
+  pageIndicator: { textAlign: 'right', color: 'rgba(255, 255, 255, 0.9)', fontSize: 16, marginRight: 12 },
   menuItem: { paddingVertical: 18, borderBottomWidth: 1, borderBottomColor: 'rgba(255, 255, 255, 0.2)' },
-  menuItemText: { fontSize: 18, color: '#FFFFFF', textAlign: 'right' },
+  menuItemText: { fontSize: 18, color: '#FFFFFF', textAlign: 'right', marginRight: 12 },
   backItem: { marginTop: 20, borderBottomWidth: 0 },
   backText: { fontSize: 18, color: '#FFFFFF', fontWeight: 'bold' },
   divider: { height: 1, backgroundColor: 'rgba(255, 255, 255, 0.2)', marginVertical: 10 },
@@ -1376,8 +1477,8 @@ const styles = StyleSheet.create({
   backButtonText: { fontSize: 18, color: '#FFFFFF', fontWeight: '600', textAlign: 'right' },
   surahList: { flex: 1 },
   surahListItem: { paddingVertical: 12, paddingHorizontal: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(255, 255, 255, 0.2)' },
-  surahListItemText: { fontSize: 18, color: '#FFFFFF', fontWeight: '600', marginBottom: 2, textAlign: 'right' },
-  surahListItemSubtext: { fontSize: 14, color: 'rgba(255, 255, 255, 0.8)', textAlign: 'right' },
+  surahListItemText: { fontSize: 18, color: '#FFFFFF', fontWeight: '600', marginBottom: 2, textAlign: 'right', marginRight: 12 },
+  surahListItemSubtext: { fontSize: 14, color: 'rgba(255, 255, 255, 0.8)', textAlign: 'right', marginRight: 12 },
   badgesContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 2 },
   hifdhBadge: { 
     backgroundColor: '#2E7D32', 
