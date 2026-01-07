@@ -838,9 +838,11 @@ const PageItem = React.memo<PageItemProps>(({ item, width, height, isLandscape, 
   const containerHeight = height - navbarHeight;
   
   if (isLandscape) {
-    // Mode paysage : scroll vertical avec image en contain à 100% width
-    const imageAspectRatio = 1.4;
-    const imageHeight = width * imageAspectRatio;
+    // Mode paysage : image avec padding horizontal, hauteur auto et scroll
+    const horizontalPadding = 20;
+    const imageWidth = width - (horizontalPadding * 2);
+    const imageAspectRatio = 1.4; // Ratio typique d'une page de Quran
+    const imageHeight = imageWidth * imageAspectRatio;
     
     return (
       <View style={{ 
@@ -849,15 +851,19 @@ const PageItem = React.memo<PageItemProps>(({ item, width, height, isLandscape, 
         backgroundColor: '#fff'
       }}>
         <ScrollView 
-          style={{ flex: 1, width: width }}
-          contentContainerStyle={{ width: width, paddingBottom: bottomInset }}
+          style={{ flex: 1 }}
+          contentContainerStyle={{ 
+            paddingHorizontal: horizontalPadding,
+            paddingBottom: 0,
+            alignItems: 'center'
+          }}
           showsVerticalScrollIndicator={true}
           bounces={true}
         >
           <Image 
             source={item.source} 
             style={{ 
-              width: width,
+              width: imageWidth,
               height: imageHeight
             }}
             contentFit="contain"
