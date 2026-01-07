@@ -15,6 +15,7 @@ import {
   ScrollView,
   StatusBar,
   StyleSheet,
+  Switch,
   Text,
   TextInput,
   TouchableOpacity,
@@ -22,6 +23,14 @@ import {
   View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+// Charger Expo ScreenOrientation uniquement si disponible (évite les erreurs de bundling)
+let ScreenOrientation: any = null;
+try {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  ScreenOrientation = require('expo-screen-orientation');
+} catch (e) {
+  console.warn('expo-screen-orientation non disponible, le verrouillage d’orientation sera ignoré.');
+}
 
 /* =======================
    DONNÉES DES IMAGES
@@ -842,6 +851,9 @@ const PageItem = React.memo<PageItemProps>(({ item, width, height, isLandscape, 
   const isScrollingRef = useRef<boolean>(false);
   const lastTapTime = useRef<number>(0);
   const tapTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const touchStartXRef = useRef<number>(0);
+  const touchStartYRef = useRef<number>(0);
+  const isMovingRef = useRef<boolean>(false);
   
   if (isLandscape) {
     // Mode paysage : image avec padding horizontal, hauteur auto et scroll
@@ -874,6 +886,7 @@ const PageItem = React.memo<PageItemProps>(({ item, width, height, isLandscape, 
           scrollEventThrottle={16}
           onScrollBeginDrag={() => {
             isScrollingRef.current = true;
+            isMovingRef.current = true;
             if (tapTimeoutRef.current) {
               clearTimeout(tapTimeoutRef.current);
               tapTimeoutRef.current = null;
@@ -881,19 +894,20 @@ const PageItem = React.memo<PageItemProps>(({ item, width, height, isLandscape, 
             lastTapTime.current = 0;
           }}
           onScrollEndDrag={() => {
-            // Réinitialiser après un court délai
             setTimeout(() => {
               isScrollingRef.current = false;
+              isMovingRef.current = false;
             }, 200);
           }}
           onMomentumScrollBegin={() => {
             isScrollingRef.current = true;
+            isMovingRef.current = true;
           }}
           onMomentumScrollEnd={() => {
             isScrollingRef.current = false;
+            isMovingRef.current = false;
           }}
           onScroll={() => {
-            // Annuler tout tap en cours si on scroll
             if (tapTimeoutRef.current) {
               clearTimeout(tapTimeoutRef.current);
               tapTimeoutRef.current = null;
@@ -904,18 +918,33 @@ const PageItem = React.memo<PageItemProps>(({ item, width, height, isLandscape, 
           <View
             style={{ width: imageWidth, height: imageHeight }}
             onStartShouldSetResponder={() => {
-              // Ne capturer que si on n'est pas en train de scroller
               return !isScrollingRef.current;
             }}
-            onMoveShouldSetResponder={() => {
-              // Ne jamais capturer les mouvements
-              return false;
+            onMoveShouldSetResponder={() => false}
+            onResponderGrant={(e) => {
+              touchStartXRef.current = e.nativeEvent.pageX;
+              touchStartYRef.current = e.nativeEvent.pageY;
+              isMovingRef.current = false;
             }}
-            onResponderGrant={() => {
+            onResponderMove={(e) => {
+              const dx = Math.abs(e.nativeEvent.pageX - touchStartXRef.current);
+              const dy = Math.abs(e.nativeEvent.pageY - touchStartYRef.current);
+              if (dx > 8 || dy > 8) {
+                isMovingRef.current = true;
+              }
+            }}
+            onResponderRelease={(e) => {
               const now = Date.now();
-              // Détecter un double-tap
-              if (now - lastTapTime.current < 400 && !isScrollingRef.current) {
-                // Double tap détecté
+              const dx = Math.abs(e.nativeEvent.pageX - touchStartXRef.current);
+              const dy = Math.abs(e.nativeEvent.pageY - touchStartYRef.current);
+              const moved = isMovingRef.current || dx > 8 || dy > 8;
+
+              if (moved || isScrollingRef.current) {
+                isMovingRef.current = false;
+                return;
+              }
+
+              if (now - lastTapTime.current < 400) {
                 onToggleNavbar();
                 lastTapTime.current = 0;
                 if (tapTimeoutRef.current) {
@@ -924,20 +953,20 @@ const PageItem = React.memo<PageItemProps>(({ item, width, height, isLandscape, 
                 }
               } else {
                 lastTapTime.current = now;
-                // Si pas de scroll pendant 400ms, c'est un tap simple
                 if (tapTimeoutRef.current) {
                   clearTimeout(tapTimeoutRef.current);
                 }
                 tapTimeoutRef.current = setTimeout(() => {
-                  if (!isScrollingRef.current) {
+                  if (!isScrollingRef.current && !isMovingRef.current) {
                     onToggleNavbar();
                   }
                   lastTapTime.current = 0;
                 }, 400);
               }
+              isMovingRef.current = false;
             }}
             onResponderTerminationRequest={() => {
-              // Toujours permettre la terminaison pour le scroll
+              isMovingRef.current = false;
               return true;
             }}
           >
@@ -985,8 +1014,10 @@ export default function QuranReaderScreen() {
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
   
-  // Détecter si on est en mode paysage
-  const isLandscape = width > height;
+  // Toggle manuel pour activer/désactiver le mode paysage
+  const [landscapeEnabled, setLandscapeEnabled] = useState(false);
+  // Détecter si on est en mode paysage (et que le mode paysage est autorisé)
+  const isLandscape = landscapeEnabled && width > height;
   
   const flatListRef = useRef<FlatList>(null);
   // Initialiser l'animation en fonction de RTL
@@ -1085,6 +1116,18 @@ export default function QuranReaderScreen() {
     // Empêcher l'écran de se mettre en veille
     activateKeepAwakeAsync();
     
+    // Verrouiller l'orientation en portrait au démarrage (mode paysage désactivé par défaut)
+    const lockOrientationOnMount = async () => {
+      if (ScreenOrientation) {
+        try {
+          await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+        } catch (e) {
+          console.warn('Orientation lock on mount failed', e);
+        }
+      }
+    };
+    lockOrientationOnMount();
+    
     // Nettoyer à la sortie
     return () => {
       if (Platform.OS === 'android') {
@@ -1093,6 +1136,23 @@ export default function QuranReaderScreen() {
       deactivateKeepAwake();
     };
   }, []);
+
+  // Verrouiller l'orientation selon le toggle paysage
+  useEffect(() => {
+    const lockOrientation = async () => {
+      if (!ScreenOrientation) return;
+      try {
+        if (landscapeEnabled) {
+          await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.DEFAULT);
+        } else {
+          await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+        }
+      } catch (e) {
+        console.warn('Orientation lock failed', e);
+      }
+    };
+    lockOrientation();
+  }, [landscapeEnabled]);
 
   // Restaurer la page actuelle lors de la rotation
   useEffect(() => {
@@ -1296,6 +1356,15 @@ export default function QuranReaderScreen() {
             <TouchableOpacity style={styles.menuItem} onPress={() => setSurahListVisible(true)}>
               <Text style={styles.menuItemText}>📜 قائمة السور</Text>
         </TouchableOpacity>
+            <View style={styles.switchRow}>
+              <Text style={styles.switchLabel}>تفعيل الوضع الأفقي</Text>
+              <Switch
+                value={landscapeEnabled}
+                onValueChange={setLandscapeEnabled}
+                thumbColor="#FFFFFF"
+                trackColor={{ false: 'rgba(255,255,255,0.4)', true: '#2E7D32' }}
+              />
+            </View>
           </ScrollView>
         ) : (
           <>
@@ -1469,6 +1538,8 @@ const styles = StyleSheet.create({
   pageIndicator: { textAlign: 'right', color: 'rgba(255, 255, 255, 0.9)', fontSize: 16, marginRight: 12 },
   menuItem: { paddingVertical: 18, borderBottomWidth: 1, borderBottomColor: 'rgba(255, 255, 255, 0.2)' },
   menuItemText: { fontSize: 18, color: '#FFFFFF', textAlign: 'right', marginRight: 12 },
+  switchRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: 'rgba(255, 255, 255, 0.2)' },
+  switchLabel: { fontSize: 16, color: '#FFFFFF', textAlign: 'right', marginRight: 12 },
   backItem: { marginTop: 20, borderBottomWidth: 0 },
   backText: { fontSize: 18, color: '#FFFFFF', fontWeight: 'bold' },
   divider: { height: 1, backgroundColor: 'rgba(255, 255, 255, 0.2)', marginVertical: 10 },
