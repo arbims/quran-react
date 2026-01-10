@@ -77,8 +77,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 8,
     minHeight: 44,
-    zIndex: 30,
-    elevation: 8,
+    zIndex: 3000, // Au-dessus de la sidebar (zIndex: 2000) et de la barre de progression audio (zIndex: 1000)
+    elevation: 30, // Au-dessus de la sidebar (elevation: 25) et de la barre de progression audio (elevation: 20)
     shadowColor: '#FFFFFF',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.5,

@@ -18,12 +18,14 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Imports des modules refactorisés
+import { AudioProgressBar } from '@/lib/quran-reader/components/AudioProgressBar';
 import { Navbar } from '@/lib/quran-reader/components/Navbar';
 import { PageInputModal } from '@/lib/quran-reader/components/PageInputModal';
 import { PageItem } from '@/lib/quran-reader/components/PageItem';
 import { Sidebar } from '@/lib/quran-reader/components/Sidebar';
 import { HIFDH_KEY, LAST_READ_KEY, SIDEBAR_WIDTH } from '@/lib/quran-reader/constants';
 import { useOrientation } from '@/lib/quran-reader/hooks/useOrientation';
+import { useAudioPlayer } from '@/lib/quran-reader/hooks/useAudioPlayer';
 import { allQuranPages, findPageIndexForSurah, getCurrentSurah, reversedQuranPages } from '@/lib/quran-reader/utils';
 
 // Import des données depuis les modules refactorisés
@@ -72,6 +74,37 @@ export default function QuranReaderScreen() {
   const [pageInputVisible, setPageInputVisible] = useState(false);
   const [pageInputValue, setPageInputValue] = useState('');
   const [navbarVisible, setNavbarVisible] = useState(true);
+  const [audioProgressBarVisible, setAudioProgressBarVisible] = useState(false); // Cachée par défaut
+  const isStoppingRef = useRef(false); // Flag pour éviter les animations lors du stop
+  const lastTouchTimeRef = useRef<number>(0); // Pour détecter les clics simples
+  const touchStartTimeRef = useRef<number>(0); // Temps de début du touch
+  const touchStartYRef = useRef<number>(0); // Position Y du début du touch
+
+  // Hook pour la lecture audio
+  const { isPlaying: isAudioPlaying, isLoading: isAudioLoading, error: audioError, play: playAudio, pause: pauseAudio, stop: stopAudio, seek: seekAudio, currentPage: audioCurrentPage, currentTime: audioCurrentTime, duration: audioDuration } = useAudioPlayer();
+
+  // Gérer la visibilité de la barre de progression (un seul useEffect pour éviter les animations)
+  useEffect(() => {
+    // VÉRIFIER LE FLAG EN PREMIER pour éviter toute modification pendant le stop
+    // Si le flag est actif, ignorer complètement ce useEffect
+    if (isStoppingRef.current) {
+      return;
+    }
+    
+    // Afficher la barre quand l'audio commence à jouer
+    if (isAudioPlaying) {
+      setAudioProgressBarVisible(true);
+      return;
+    }
+    
+    // Si l'audio est en pause et qu'on a une durée ou une page active, garder la barre visible
+    // (seulement si elle était déjà visible, pas au démarrage)
+    if (!isAudioPlaying && (audioDuration > 0 || audioCurrentPage)) {
+      // La barre reste visible si elle était déjà affichée (gérée par l'état précédent)
+      // On ne force pas l'affichage ici pour respecter l'état par défaut (caché)
+      return;
+    }
+  }, [isAudioPlaying, audioDuration, audioCurrentPage]);
 
   // Si on revient en mode portrait, forcer la navbar à réapparaître
   useEffect(() => {
@@ -241,46 +274,75 @@ export default function QuranReaderScreen() {
       />
       
       <FlatList
-        ref={flatListRef}
-        data={reversedQuranPages}
-        horizontal
-        pagingEnabled
-        initialScrollIndex={currentPageIndex !== null ? currentPageIndex : finalStartIndex}
-        showsHorizontalScrollIndicator={false}
-        onViewableItemsChanged={onViewableItemsChanged}
-        viewabilityConfig={{ itemVisiblePercentThreshold: 50 }}
-        getItemLayout={(_, index) => ({ length: width, offset: width * index, index })}
-        style={{ 
-          marginTop: navbarVisible ? (isLandscape ? Math.max(insets.top, 8) + 40 + 4 : insets.top + 48) : (isLandscape ? Math.max(insets.top, 8) : insets.top), 
-          direction: 'ltr' 
-        }}
-        key={`flatlist-${width}-${height}`}
-        extraData={isLandscape}
-        renderItem={({ item }) => (
-          <PageItem 
-            item={item} 
-            width={width} 
-            height={height} 
-            isLandscape={isLandscape} 
-            insets={insets}
-            navbarVisible={navbarVisible}
-            onToggleNavbar={() => {
-              if (isLandscape) {
-                setNavbarVisible(!navbarVisible);
+          ref={flatListRef}
+          data={reversedQuranPages}
+          horizontal
+          pagingEnabled
+          initialScrollIndex={currentPageIndex !== null ? currentPageIndex : finalStartIndex}
+          showsHorizontalScrollIndicator={false}
+          onViewableItemsChanged={onViewableItemsChanged}
+          viewabilityConfig={{ itemVisiblePercentThreshold: 50 }}
+          getItemLayout={(_, index) => ({ length: width, offset: width * index, index })}
+          style={{ 
+            marginTop: navbarVisible ? (isLandscape ? Math.max(insets.top, 8) + 40 + 4 : insets.top + 48) : (isLandscape ? Math.max(insets.top, 8) : insets.top),
+            marginBottom: audioProgressBarVisible && (isAudioPlaying || audioDuration > 0) ? 100 : 0,
+            direction: 'ltr' 
+          }}
+          key={`flatlist-${width}-${height}`}
+          extraData={isLandscape}
+          renderItem={({ item }) => (
+            <PageItem 
+              item={item} 
+              width={width} 
+              height={height} 
+              isLandscape={isLandscape} 
+              insets={insets}
+              navbarVisible={navbarVisible}
+              onToggleNavbar={() => {
+                if (isLandscape) {
+                  setNavbarVisible(!navbarVisible);
+                }
+              }}
+            />
+          )}
+          keyExtractor={(item) => `page-${item.number}`}
+          onScrollToIndexFailed={info => {
+            flatListRef.current?.scrollToOffset({ offset: info.averageItemLength * info.index, animated: false });
+          }}
+          removeClippedSubviews={true}
+          maxToRenderPerBatch={3}
+          windowSize={5}
+          initialNumToRender={1}
+          updateCellsBatchingPeriod={50}
+          onScrollBeginDrag={() => {
+            // Masquer la barre quand on commence à faire défiler (seulement si l'audio n'est pas en cours de lecture)
+            if (audioProgressBarVisible && !isAudioPlaying && audioDuration > 0) {
+              setAudioProgressBarVisible(false);
+            }
+          }}
+          onTouchStart={(e) => {
+            // Enregistrer le temps et la position du début du touch pour détecter les clics simples
+            touchStartTimeRef.current = Date.now();
+            touchStartYRef.current = e.nativeEvent.pageY;
+          }}
+          onTouchEnd={(e) => {
+            // Masquer la barre seulement si c'est un clic simple (pas un défilement)
+            if (audioProgressBarVisible && !isAudioPlaying && audioDuration > 0) {
+              const touchDuration = Date.now() - touchStartTimeRef.current;
+              const touchDistance = Math.abs(e.nativeEvent.pageY - touchStartYRef.current);
+              
+              // Si le touch était court (< 300ms) et peu de mouvement (< 10px), c'est un clic simple
+              if (touchDuration < 300 && touchDistance < 10) {
+                // Vérifier que le clic n'est pas dans la zone de la barre (bas de l'écran)
+                const screenHeight = height;
+                const progressBarHeight = 120; // Hauteur de la barre + safe area
+                if (e.nativeEvent.pageY < screenHeight - progressBarHeight) {
+                  setAudioProgressBarVisible(false);
+                }
               }
-            }}
-          />
-        )}
-        keyExtractor={(item) => `page-${item.number}`}
-        onScrollToIndexFailed={info => {
-          flatListRef.current?.scrollToOffset({ offset: info.averageItemLength * info.index, animated: false });
-        }}
-        removeClippedSubviews={true}
-        maxToRenderPerBatch={3}
-        windowSize={5}
-        initialNumToRender={1}
-        updateCellsBatchingPeriod={50}
-      />
+            }
+          }}
+        />
 
       {menuVisible && <Pressable style={styles.overlay} onPress={toggleMenu} />}
 
@@ -302,7 +364,50 @@ export default function QuranReaderScreen() {
         onSetCurrentPage={setCurrentPage}
         onSetCurrentPageIndex={setCurrentPageIndex}
         onToggleMenu={toggleMenu}
+        onPlayAudio={playAudio}
+        onPauseAudio={pauseAudio}
+        onStopAudio={stopAudio}
+        isAudioPlaying={isAudioPlaying}
+        isAudioLoading={isAudioLoading}
+        audioError={audioError}
       />
+      
+      {/* Barre de progression audio en bas de l'écran */}
+      {/* Afficher la barre seulement si audioProgressBarVisible est true (géré par le useEffect) */}
+      {/* Ne pas vérifier audioDuration/audioCurrentPage ici pour éviter les animations lors du stop */}
+      {audioProgressBarVisible && (
+        <View pointerEvents="box-none">
+          <AudioProgressBar
+            currentTime={audioCurrentTime}
+            duration={audioDuration}
+            isPlaying={isAudioPlaying}
+            isLoading={isAudioLoading}
+            onSeek={seekAudio}
+            onPlayPause={isAudioPlaying ? pauseAudio : () => {
+              isStoppingRef.current = false; // Réinitialiser le flag si on relance
+              setAudioProgressBarVisible(true);
+              playAudio(audioCurrentPage || currentPage);
+            }}
+            onStop={() => {
+              // Activer le flag AVANT toute mise à jour pour empêcher le useEffect de réagir
+              isStoppingRef.current = true;
+              // Masquer immédiatement la barre lors du stop pour éviter toute animation
+              setAudioProgressBarVisible(false);
+              // Utiliser requestAnimationFrame pour s'assurer que la visibilité est mise à jour avant stopAudio
+              requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                  // Double requestAnimationFrame pour s'assurer que React a traité la mise à jour de visibilité
+                  stopAudio();
+                  // Réinitialiser le flag après que tous les états soient mis à jour
+                  setTimeout(() => {
+                    isStoppingRef.current = false;
+                  }, 100);
+                });
+              });
+            }}
+          />
+        </View>
+      )}
 
       {/* Modal pour saisir le numéro de page */}
       <PageInputModal

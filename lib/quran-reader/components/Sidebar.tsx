@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
-import { Animated, FlatList, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Animated, FlatList, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { ARABIC_FONT, SIDEBAR_WIDTH } from '../constants';
 import { findPageIndexForSurah, reversedQuranPages } from '../utils';
+import { hasAudioAsset } from '../utils/audioAssets';
 
 interface SidebarProps {
   slideAnim: Animated.Value;
@@ -23,7 +24,14 @@ interface SidebarProps {
   onSetCurrentPage: (page: number) => void;
   onSetCurrentPageIndex: (index: number) => void;
   onToggleMenu: () => void;
+  onPlayAudio: (page: number) => void;
+  onPauseAudio: () => void;
+  onStopAudio: () => void;
+  isAudioPlaying: boolean;
+  isAudioLoading: boolean;
+  audioError: string | null;
 }
+
 
 export const Sidebar: React.FC<SidebarProps> = ({
   slideAnim,
@@ -43,7 +51,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSetCurrentPage,
   onSetCurrentPageIndex,
   onToggleMenu,
+  onPlayAudio,
+  onPauseAudio,
+  onStopAudio,
+  isAudioPlaying,
+  isAudioLoading,
+  audioError,
 }) => {
+  const hasAudio = hasAudioAsset(currentPage);
+  
   return (
     <Animated.View style={[styles.sidebarContainer, { transform: [{ translateX: slideAnim }] }]}>
       <LinearGradient
@@ -100,6 +116,56 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <Ionicons name="list" size={22} color="#FFFFFF" style={styles.menuIcon} />
             </View>
           </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.menuItem, isAudioLoading && !isAudioPlaying && styles.menuItemDisabled]} 
+            onPress={() => {
+              if (!hasAudio) {
+                Alert.alert(
+                  'معلومة',
+                  'لا يوجد ملف صوتي متاح لهذه الصفحة',
+                  [{ text: 'حسناً', style: 'default' }],
+                  { cancelable: true }
+                );
+                return;
+              }
+              if (isAudioPlaying) {
+                onPauseAudio();
+              } else {
+                onPlayAudio(currentPage);
+              }
+            }} 
+            activeOpacity={0.7}
+            disabled={isAudioLoading && !isAudioPlaying}
+          >
+            <View style={styles.menuItemContent}>
+              <Text style={styles.menuItemText}>
+                {isAudioLoading ? 'جاري التحميل...' : audioError ? 'إعادة المحاولة' : isAudioPlaying ? 'إيقاف مؤقت' : 'تشغيل الصوت'}
+              </Text>
+              <Ionicons 
+                name={isAudioPlaying ? 'pause' : 'play'} 
+                size={22} 
+                color={isAudioLoading && !audioError ? "#888888" : "#FFFFFF"} 
+                style={styles.menuIcon} 
+              />
+            </View>
+          </TouchableOpacity>
+          {audioError && (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>{audioError}</Text>
+            </View>
+          )}
+          {isAudioPlaying && (
+            <TouchableOpacity 
+              style={styles.menuItem} 
+              onPress={onStopAudio} 
+              activeOpacity={0.7}
+            >
+              <View style={styles.menuItemContent}>
+                <Text style={styles.menuItemText}>إيقاف الصوت</Text>
+                <Ionicons name="stop" size={22} color="#FFFFFF" style={styles.menuIcon} />
+              </View>
+            </TouchableOpacity>
+          )}
           <View style={styles.switchRow}>
             <Text style={styles.switchLabel}>تفعيل الوضع الأفقي</Text>
             <View style={styles.switchLabelContainer}>
@@ -121,7 +187,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
             </TouchableOpacity>
             <Text style={[styles.sidebarTitle, { flex: 1, textAlign: 'right' }]}>قائمة السور</Text>
-            <View style={styles.backButton} />
           </View>
           <View style={styles.divider} />
           <FlatList
@@ -152,7 +217,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 }}
               >
                 <Text style={styles.surahListItemText}>{item.id}. {item.name_ar}</Text>
-                <Text style={styles.surahListItemSubtext}>{item.name_en}</Text>
               </TouchableOpacity>
             )}
             style={styles.surahList}
@@ -175,14 +239,15 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     width: SIDEBAR_WIDTH,
-    zIndex: 20,
+    zIndex: 2000, // Au-dessus de la barre de progression audio (zIndex: 1000)
+    elevation: 25, // Au-dessus de la barre de progression audio (elevation: 20)
   },
   sidebar: { 
     flex: 1,
     paddingHorizontal: 20, 
     borderTopLeftRadius: 24, 
     borderBottomLeftRadius: 24, 
-    elevation: 12, 
+    elevation: 25, // Au-dessus de la barre de progression audio
     direction: 'ltr',
     shadowColor: '#FFFFFF',
     shadowOffset: { width: -4, height: 0 },
@@ -294,6 +359,24 @@ const styles = StyleSheet.create({
     marginRight: 0,
     opacity: 0.8,
     fontFamily: ARABIC_FONT,
+  },
+  errorContainer: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: 'rgba(255, 0, 0, 0.2)',
+    borderRadius: 8,
+    marginVertical: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 0, 0, 0.5)',
+  },
+  errorText: {
+    fontSize: 14,
+    color: '#FF6B6B',
+    textAlign: 'right',
+    fontFamily: ARABIC_FONT,
+  },
+  menuItemDisabled: {
+    opacity: 0.5,
   },
 });
 

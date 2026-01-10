@@ -34,7 +34,6 @@ export default function TabTwoScreen() {
         renderItem={({ item }) => (
           <TouchableOpacity style={styles.surahItem}>
             <ThemedText type="subtitle">{item.id}. {item.name_ar}</ThemedText>
-            <ThemedText>{item.name_en}</ThemedText>
           </TouchableOpacity>
         )}
         contentContainerStyle={styles.listContainer}
