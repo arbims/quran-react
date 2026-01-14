@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Extracteur d'IDs Google Drive</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+        }
+        .instructions {
+            background: #e3f2fd;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .step {
+            margin: 15px 0;
+            padding: 10px;
+            background: #f9f9f9;
+            border-left: 4px solid #2196F3;
+        }
+        .code {
+            background: #263238;
+            color: #aed581;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            margin: 10px 0;
+        }
+        .button {
+            background: #2196F3;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        .button:hover {
+            background: #1976D2;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background: #e8f5e9;
+            border-radius: 5px;
+            display: none;
+        }
+        .error {
+            background: #ffebee;
+            color: #c62828;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📥 Extracteur d'IDs Google Drive</h1>
+        
+        <div class="instructions">
+            <h2>Instructions manuelles (Recommandé)</h2>
+            
+            <div class="step">
+                <strong>Étape 1:</strong> Ouvrez votre dossier Google Drive dans un nouvel onglet:
+                <div class="code">
+                    <a href="https://drive.google.com/drive/folders/11LMFDL2aaecrRTFtAPGpmGiCUKBHQV8u" target="_blank">
+                        https://drive.google.com/drive/folders/11LMFDL2aaecrRTFtAPGpmGiCUKBHQV8u
+                    </a>
+                </div>
+            </div>
+            
+            <div class="step">
+                <strong>Étape 2:</strong> Pour chaque fichier audio (002.mp3, 458.mp3, etc.):
+                <ul>
+                    <li><strong>Cliquez sur le fichier</strong> pour l'ouvrir</li>
+                    <li>Regardez l'<strong>URL dans la barre d'adresse</strong></li>
+                    <li>L'URL ressemble à: <code>https://drive.google.com/file/d/FILE_ID/view</code></li>
+                    <li><strong>L'ID est la partie entre <code>/d/</code> et <code>/view</code></strong></li>
+                </ul>
+                <div class="code">
+                    Exemple: https://drive.google.com/file/d/1ABC123XYZ789/view<br>
+                    ID: <strong>1ABC123XYZ789</strong>
+                </div>
+            </div>
+            
+            <div class="step">
+                <strong>Étape 3:</strong> Copiez tous les IDs et collez-les dans le champ ci-dessous, puis cliquez sur "Générer le mapping"
+            </div>
+        </div>
+        
+        <h2>Extraction automatique</h2>
+        <p>Si vous avez une clé API Google Drive, vous pouvez utiliser l'extraction automatique :</p>
+        
+        <label for="apiKey">Clé API Google Drive (optionnel) :</label>
+        <input type="text" id="apiKey" placeholder="Votre clé API" style="width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px;">
+        
+        <button class="button" onclick="extractWithAPI()">🔍 Extraire avec l'API</button>
+        
+        <h2>Ou extraction manuelle</h2>
+        <p>Collez les IDs que vous avez extraits manuellement (un par ligne, format: PAGE_NUMBER=FILE_ID) :</p>
+        <textarea id="manualIds" placeholder="Exemple:&#10;2=1ABC123XYZ789&#10;458=2DEF456UVW012&#10;459=3GHI789RST345" style="width: 100%; height: 150px; padding: 10px; font-family: monospace; border: 1px solid #ddd; border-radius: 5px;"></textarea>
+        
+        <button class="button" onclick="generateMapping()">📋 Générer le mapping</button>
+        
+        <div id="result" class="result"></div>
+    </div>
+    
+    <script>
+        const FOLDER_ID = '11LMFDL2aaecrRTFtAPGpmGiCUKBHQV8u';
+        
+        async function extractWithAPI() {
+            const apiKey = document.getElementById('apiKey').value;
+            const resultDiv = document.getElementById('result');
+            
+            if (!apiKey || apiKey === '') {
+                resultDiv.className = 'result error';
+                resultDiv.style.display = 'block';
+                resultDiv.innerHTML = '❌ Veuillez entrer une clé API Google Drive. Vous pouvez en obtenir une sur <a href="https://console.cloud.google.com/" target="_blank">Google Cloud Console</a>.';
+                return;
+            }
+            
+            resultDiv.className = 'result';
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = '🔄 Extraction en cours...';
+            
+            try {
+                const url = `https://www.googleapis.com/drive/v3/files?q="${FOLDER_ID}"+in+parents+and+trashed=false&fields=files(id,name)&key=${apiKey}`;
+                const response = await fetch(url);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.files && data.files.length > 0) {
+                    const mapping = {};
+                    const files = [];
+                    
+                    data.files.forEach(file => {
+                        const pageMatch = file.name.match(/(\d{3})\.mp3/i);
+                        if (pageMatch) {
+                            const pageNumber = parseInt(pageMatch[1], 10);
+                            mapping[pageNumber] = file.id;
+                            files.push({ page: pageNumber, id: file.id, name: file.name });
+                        }
+                    });
+                    
+                    files.sort((a, b) => a.page - b.page);
+                    
+                    let html = '<h3>✅ Fichiers trouvés :</h3><ul>';
+                    files.forEach(file => {
+                        html += `<li>Page ${file.page}: <code>${file.id}</code> (${file.name})</li>`;
+                    });
+                    html += '</ul>';
+                    
+                    html += '<h3>📋 Code à copier dans googleDriveMapping.ts :</h3>';
+                    html += '<div class="code" style="white-space: pre-wrap; cursor: pointer;" onclick="copyToClipboard(this)">';
+                    html += 'export const GOOGLE_DRIVE_FILE_ID_MAP: Record&lt;number, string&gt; = {\n';
+                    files.forEach(file => {
+                        html += `  ${file.page}: '${file.id}', // ${file.name}\n`;
+                    });
+                    html += '};';
+                    html += '</div>';
+                    html += '<p><small>💡 Cliquez sur le code pour le copier</small></p>';
+                    
+                    resultDiv.innerHTML = html;
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.innerHTML = '❌ Aucun fichier trouvé dans le dossier.';
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `❌ Erreur: ${error.message}<br>Utilisez la méthode manuelle décrite ci-dessus.`;
+            }
+        }
+        
+        function generateMapping() {
+            const manualIds = document.getElementById('manualIds').value.trim();
+            const resultDiv = document.getElementById('result');
+            
+            if (!manualIds) {
+                resultDiv.className = 'result error';
+                resultDiv.style.display = 'block';
+                resultDiv.innerHTML = '❌ Veuillez entrer les IDs manuellement.';
+                return;
+            }
+            
+            const lines = manualIds.split('\n').filter(line => line.trim());
+            const mapping = {};
+            const errors = [];
+            
+            lines.forEach((line, index) => {
+                const trimmed = line.trim();
+                if (trimmed.includes('=')) {
+                    const [page, id] = trimmed.split('=').map(s => s.trim());
+                    const pageNum = parseInt(page, 10);
+                    if (!isNaN(pageNum) && id) {
+                        mapping[pageNum] = id;
+                    } else {
+                        errors.push(`Ligne ${index + 1}: Format invalide (attendu: PAGE=ID)`);
+                    }
+                } else if (trimmed.match(/^\d+$/)) {
+                    // Juste un numéro de page, utiliser comme clé
+                    const pageNum = parseInt(trimmed, 10);
+                    mapping[pageNum] = 'REMPLACEZ_PAR_L_ID';
+                }
+            });
+            
+            if (Object.keys(mapping).length === 0) {
+                resultDiv.className = 'result error';
+                resultDiv.style.display = 'block';
+                resultDiv.innerHTML = '❌ Aucun mapping valide trouvé. Format attendu: PAGE=ID (ex: 2=1ABC123XYZ789)';
+                return;
+            }
+            
+            const sortedPages = Object.keys(mapping).map(Number).sort((a, b) => a - b);
+            
+            let html = '<h3>📋 Code à copier dans googleDriveMapping.ts :</h3>';
+            html += '<div class="code" style="white-space: pre-wrap; cursor: pointer;" onclick="copyToClipboard(this)">';
+            html += 'export const GOOGLE_DRIVE_FILE_ID_MAP: Record&lt;number, string&gt; = {\n';
+            sortedPages.forEach(page => {
+                html += `  ${page}: '${mapping[page]}',\n`;
+            });
+            html += '};';
+            html += '</div>';
+            html += '<p><small>💡 Cliquez sur le code pour le copier</small></p>';
+            
+            if (errors.length > 0) {
+                html += '<div class="error" style="margin-top: 10px; padding: 10px;">';
+                html += '<strong>⚠️ Erreurs:</strong><ul>';
+                errors.forEach(err => html += `<li>${err}</li>`);
+                html += '</ul></div>';
+            }
+            
+            resultDiv.className = 'result';
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = html;
+        }
+        
+        function copyToClipboard(element) {
+            const text = element.textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                const original = element.style.backgroundColor;
+                element.style.backgroundColor = '#4caf50';
+                setTimeout(() => {
+                    element.style.backgroundColor = original;
+                }, 500);
+            });
+        }
+    </script>
+</body>
+</html>
+

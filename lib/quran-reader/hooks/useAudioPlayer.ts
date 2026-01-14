@@ -1,16 +1,19 @@
+import { Asset } from 'expo-asset';
 import { useAudioPlayer as useExpoAudioPlayer } from 'expo-audio';
 import { Audio as ExpoAV } from 'expo-av';
-import { Asset } from 'expo-asset';
-import * as FileSystem from 'expo-file-system';
-import { Platform } from 'react-native';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { getAudioAsset, hasAudioAsset } from '../utils/audioAssets';
+import {
+  downloadAudioFile,
+  getCachedAudioUri,
+  isAudioFileCached
+} from '../utils/audioDownload';
 
 interface UseAudioPlayerReturn {
   isPlaying: boolean;
   isLoading: boolean;
   error: string | null;
-  play: (pageNumber: number) => Promise<void>;
+  play: (pageNumber: number, onDownloadRequest?: (pageNumber: number) => Promise<boolean>) => Promise<void>;
   pause: () => Promise<void>;
   stop: () => Promise<void>;
   seek: (time: number) => Promise<void>;
@@ -504,11 +507,11 @@ export const useAudioPlayer = (): UseAudioPlayerReturn => {
     }
   }, [player, audioSource, isLoading]);
 
-  const getAudioFileUri = async (pageNumber: number): Promise<string> => {
+  const getAudioFileUri = async (pageNumber: number, onDownloadRequest?: (pageNumber: number) => Promise<boolean>): Promise<string> => {
     const formattedPage = pageNumber.toString().padStart(3, '0');
     const fileName = `${formattedPage}.mp3`;
     
-    // Essayer d'abord avec expo-asset (fichiers dans assets/mp3/)
+    // Essayer d'abord avec expo-asset (fichiers dans assets/mp3/) - pour compatibilité
     if (hasAudioAsset(pageNumber)) {
       try {
         const assetModule = getAudioAsset(pageNumber);
@@ -528,26 +531,51 @@ export const useAudioPlayer = (): UseAudioPlayerReturn => {
           } else if (asset.uri) {
             console.log('✅ URI de l\'asset:', asset.uri);
             return asset.uri;
-          } else {
-            throw new Error('URI de l\'asset non disponible');
           }
         }
       } catch (err: any) {
         console.error('❌ Erreur avec expo-asset:', err);
-        // Continuer avec la méthode alternative
+        // Continuer avec la méthode distante
       }
     }
     
-    // Méthode alternative: utiliser file:///android_asset/ (peut ne pas fonctionner)
-    if (Platform.OS === 'android') {
-      console.warn('⚠️ Fichier audio non trouvé dans assets/mp3/, tentative avec file:///android_asset/');
-      return `file:///android_asset/${fileName}`;
-    } else {
-      return `asset://${fileName}`;
+    // Vérifier si le fichier est en cache local
+    const isCached = await isAudioFileCached(pageNumber);
+    if (isCached) {
+      const cachedUri = getCachedAudioUri(pageNumber);
+      console.log('✅ Fichier audio trouvé en cache:', cachedUri);
+      return cachedUri;
+    }
+    
+    // Si le fichier n'est pas en cache, demander le téléchargement via onDownloadRequest
+    if (onDownloadRequest) {
+      const shouldDownload = await onDownloadRequest(pageNumber);
+      if (!shouldDownload) {
+        throw new Error('Le téléchargement du fichier ZIP est requis pour lire les fichiers audio.');
+      }
+    }
+    
+    // Télécharger le ZIP et extraire les fichiers
+    try {
+      console.log('📥 Téléchargement et extraction du fichier ZIP...');
+      const downloadedUri = await downloadAudioFile(pageNumber);
+      console.log('✅ Fichier audio téléchargé et mis en cache:', downloadedUri);
+      
+      // Vérifier que le fichier existe après extraction
+      const fileExists = await isAudioFileCached(pageNumber);
+      if (!fileExists) {
+        const formattedPage = pageNumber.toString().padStart(3, '0');
+        throw new Error(`لا يوجد ملف صوتي متاح لهذه الصفحة (${formattedPage}.mp3)`);
+      }
+      
+      return downloadedUri;
+    } catch (downloadErr: any) {
+      console.error('❌ Erreur lors du téléchargement du ZIP:', downloadErr);
+      throw downloadErr;
     }
   };
 
-  const play = async (pageNumber: number) => {
+  const play = async (pageNumber: number, onDownloadRequest?: (pageNumber: number) => Promise<boolean>) => {
     try {
       setError(null);
 
@@ -602,7 +630,7 @@ export const useAudioPlayer = (): UseAudioPlayerReturn => {
       }
 
       // Obtenir le chemin du fichier audio
-      const audioUri = await getAudioFileUri(pageNumber);
+      const audioUri = await getAudioFileUri(pageNumber, onDownloadRequest);
       console.log('🎵 URI audio généré:', audioUri);
 
       // Si c'est la même source, ne pas recréer le player, juste reprendre
@@ -661,11 +689,12 @@ export const useAudioPlayer = (): UseAudioPlayerReturn => {
       setAudioSource(audioUri);
       setCurrentPage(pageNumber);
     } catch (err: any) {
-      console.error('❌ Erreur lors de la lecture audio:', err);
-      setError(err.message || 'Fichier audio non trouvé');
       setIsLoading(false);
       setIsPlaying(false);
       shouldPlayRef.current = false;
+      // Relancer l'erreur pour qu'elle soit propagée vers handlePlayAudio
+      // Cela permettra d'afficher le modal approprié
+      throw err;
     }
   };
 

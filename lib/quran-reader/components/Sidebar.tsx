@@ -4,7 +4,6 @@ import React from 'react';
 import { Alert, Animated, FlatList, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { ARABIC_FONT, SIDEBAR_WIDTH } from '../constants';
 import { findPageIndexForSurah, reversedQuranPages } from '../utils';
-import { hasAudioAsset } from '../utils/audioAssets';
 
 interface SidebarProps {
   slideAnim: Animated.Value;
@@ -58,7 +57,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   isAudioLoading,
   audioError,
 }) => {
-  const hasAudio = hasAudioAsset(currentPage);
+  // Maintenant que tous les fichiers audio sont dans un ZIP, ils sont toujours disponibles
+  // Le modal de téléchargement s'affichera si nécessaire
   
   return (
     <Animated.View style={[styles.sidebarContainer, { transform: [{ translateX: slideAnim }] }]}>
@@ -119,15 +119,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <TouchableOpacity 
             style={[styles.menuItem, isAudioLoading && !isAudioPlaying && styles.menuItemDisabled]} 
             onPress={() => {
-              if (!hasAudio) {
-                Alert.alert(
-                  'معلومة',
-                  'لا يوجد ملف صوتي متاح لهذه الصفحة',
-                  [{ text: 'حسناً', style: 'default' }],
-                  { cancelable: true }
-                );
-                return;
-              }
               if (isAudioPlaying) {
                 onPauseAudio();
               } else {
