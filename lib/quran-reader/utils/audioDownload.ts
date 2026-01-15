@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system/legacy';
-import { AUDIO_DOWNLOAD_PREFERENCE_KEY, GOOGLE_DRIVE_ZIP_FILE_ID, AUDIO_ZIP_FILENAME } from '../constants';
+import { unzip } from 'react-native-zip-archive';
+import { AUDIO_DOWNLOAD_PREFERENCE_KEY, AUDIO_ZIP_FILENAME, AUDIO_ZIP_DOWNLOAD_URL } from '../constants';
 
 export type AudioDownloadPreference = 'never' | 'ask' | 'always';
 
@@ -52,10 +53,6 @@ export const getCachedAudioUri = (pageNumber: number): string => {
   const formattedPage = pageNumber.toString().padStart(3, '0');
   const fileName = `${formattedPage}.mp3`;
   return `${FileSystem.cacheDirectory}audio/${fileName}`;
-};
-
-const getGoogleDriveDownloadUrl = (fileId: string): string => {
-  return `https://drive.google.com/uc?export=download&id=${fileId}&confirm=t`;
 };
 
 export const downloadAudioFile = async (
@@ -139,20 +136,40 @@ export const getCachedZipUri = (): string => {
 };
 
 /**
- * Récupère l'URL du fichier ZIP Google Drive
+ * Récupère l'URL du fichier ZIP
+ * Utilise uniquement AUDIO_ZIP_DOWNLOAD_URL (Dropbox recommandé)
  */
 export const getZipDownloadUrl = (): string => {
-  return getGoogleDriveDownloadUrl(GOOGLE_DRIVE_ZIP_FILE_ID);
+  // L'URL de téléchargement doit être configurée dans constants.ts
+  if (!AUDIO_ZIP_DOWNLOAD_URL) {
+    throw new Error('AUDIO_ZIP_DOWNLOAD_URL n\'est pas configuré dans constants.ts. Veuillez configurer une URL de téléchargement (Dropbox recommandé).');
+  }
+  
+  console.log('📥 Utilisation de l\'URL de téléchargement configurée (Dropbox)');
+  return AUDIO_ZIP_DOWNLOAD_URL;
 };
 
 /**
- * Vérifie si le fichier ZIP est déjà téléchargé
+ * Vérifie si le fichier ZIP est déjà téléchargé et valide
  */
 export const isZipCached = async (): Promise<boolean> => {
   try {
     const zipUri = getCachedZipUri();
     const fileInfo = await FileSystem.getInfoAsync(zipUri);
-    return fileInfo.exists && !fileInfo.isDirectory;
+    
+    // Vérifier que le fichier existe et n'est pas vide
+    if (!fileInfo.exists || fileInfo.isDirectory) {
+      return false;
+    }
+    
+    // Vérifier que le fichier a une taille valide (au moins 1 KB)
+    if (!fileInfo.size || fileInfo.size < 1024) {
+      console.warn('⚠️ Le fichier ZIP en cache est invalide (trop petit), suppression...');
+      await FileSystem.deleteAsync(zipUri, { idempotent: true });
+      return false;
+    }
+    
+    return true;
   } catch (error) {
     console.error('❌ Erreur lors de la vérification du cache ZIP:', error);
     return false;
@@ -192,17 +209,54 @@ export const downloadAudioZip = async (
     const zipUri = getCachedZipUri();
     const remoteUrl = getZipDownloadUrl();
     
-    console.log('📥 Téléchargement du fichier ZIP:', remoteUrl);
+    console.log('📥 Téléchargement du fichier ZIP depuis:', remoteUrl);
     
-    // Télécharger le fichier ZIP avec suivi de progression
+    // Supprimer le fichier existant s'il est invalide
+    const existingFile = await FileSystem.getInfoAsync(zipUri);
+    if (existingFile.exists && (!existingFile.size || existingFile.size < 1024)) {
+      console.log('🗑️ Suppression du fichier ZIP invalide existant...');
+      await FileSystem.deleteAsync(zipUri, { idempotent: true });
+    }
+    
+    // Utiliser l'URL directement (Dropbox ou autre service)
+    // Plus besoin de gérer Google Drive car on utilise uniquement l'URL configurée
+    const finalDownloadUrl = remoteUrl;
+    console.log('📥 URL de téléchargement direct configurée, démarrage immédiat');
+    
+    // Télécharger avec FileSystem.createDownloadResumable
+    console.log('📥 Démarrage du téléchargement depuis:', finalDownloadUrl);
+    let lastLoggedProgress = -1;
+    
     const downloadResumable = FileSystem.createDownloadResumable(
-      remoteUrl,
+      finalDownloadUrl,
       zipUri,
       {},
       (downloadProgress) => {
-        const progress = downloadProgress.totalBytesWritten / downloadProgress.totalBytesExpectedToWrite;
-        if (onProgress) {
-          onProgress(progress);
+        const writtenMB = downloadProgress.totalBytesWritten / 1024 / 1024;
+        const expectedMB = downloadProgress.totalBytesExpectedToWrite / 1024 / 1024;
+        
+        if (downloadProgress.totalBytesExpectedToWrite > 0) {
+          const progress = downloadProgress.totalBytesWritten / downloadProgress.totalBytesExpectedToWrite;
+          if (onProgress) {
+            onProgress(progress);
+          }
+          
+          // Log tous les 5% ou tous les 10 MB
+          const progressPercent = Math.floor(progress * 100 / 5) * 5;
+          if (progressPercent !== lastLoggedProgress || writtenMB % 10 < 0.1) {
+            console.log(`📥 Progression: ${(progress * 100).toFixed(1)}% (${writtenMB.toFixed(2)} MB / ${expectedMB.toFixed(2)} MB)`);
+            lastLoggedProgress = progressPercent;
+          }
+        } else {
+          // Si on ne connaît pas la taille totale, afficher ce qui a été téléchargé
+          if (onProgress) {
+            onProgress(0.5); // Estimer à 50% si on ne connaît pas la taille
+          }
+          // Log tous les 10 MB téléchargés
+          if (Math.floor(writtenMB / 10) !== lastLoggedProgress) {
+            console.log(`📥 Téléchargement en cours: ${writtenMB.toFixed(2)} MB (taille totale inconnue)`);
+            lastLoggedProgress = Math.floor(writtenMB / 10);
+          }
         }
       }
     );
@@ -213,10 +267,68 @@ export const downloadAudioZip = async (
       throw new Error('Échec du téléchargement: URI non disponible');
     }
     
-    console.log('✅ Fichier ZIP téléchargé avec succès:', result.uri);
+    // Vérifier que le fichier a été écrit correctement
+    const fileInfo = await FileSystem.getInfoAsync(result.uri);
+    if (!fileInfo.exists || !fileInfo.size || fileInfo.size === 0) {
+      throw new Error('Le fichier téléchargé est vide ou n\'a pas été écrit correctement');
+    }
+    
+    // Vérifier que le fichier a une taille raisonnable (au moins 1 MB pour un ZIP)
+    if (fileInfo.size < 1024 * 1024) {
+      console.error(`❌ Le fichier téléchargé est trop petit: ${(fileInfo.size / 1024).toFixed(2)} KB`);
+      
+      // Vérifier si c'est une page HTML (confirmation Google Drive)
+      try {
+        const content = await FileSystem.readAsStringAsync(result.uri, {
+          encoding: FileSystem.EncodingType.UTF8,
+          length: 500, // Lire les 500 premiers caractères
+        });
+        
+        if (content.includes('<html') || content.includes('<!DOCTYPE') || content.includes('Google Drive')) {
+          console.error('❌ Google Drive a retourné une page HTML au lieu du fichier ZIP');
+          await FileSystem.deleteAsync(result.uri, { idempotent: true });
+          throw new Error('Google Drive bloque le téléchargement direct de ce fichier (663 MB). Pour les gros fichiers, Google Drive nécessite une confirmation manuelle. Veuillez télécharger le fichier manuellement depuis Google Drive et le placer dans le cache de l\'application, ou utilisez un service de stockage alternatif (Dropbox, OneDrive, etc.) qui permet le téléchargement direct.');
+        }
+      } catch (readError) {
+        // Ignorer les erreurs de lecture
+      }
+      
+      await FileSystem.deleteAsync(result.uri, { idempotent: true });
+      throw new Error('Le fichier téléchargé est trop petit pour être un ZIP valide. Google Drive bloque probablement le téléchargement direct. Veuillez vérifier que le fichier est bien partagé publiquement ou utilisez un service de stockage alternatif.');
+    }
+    
+    console.log(`✅ Fichier ZIP téléchargé avec succès: ${(fileInfo.size / 1024 / 1024).toFixed(2)} MB`);
+    
+    // Vérifier les premiers bytes pour s'assurer que c'est un ZIP
+    try {
+      const firstBytes = await FileSystem.readAsStringAsync(result.uri, {
+        encoding: FileSystem.EncodingType.Base64,
+        length: 4,
+        position: 0,
+      });
+      // La signature ZIP commence par "PK" = "UEs" en base64
+      if (!firstBytes.startsWith('UEs')) {
+        console.warn('⚠️ Le fichier ne commence pas par la signature ZIP standard');
+        // On continue quand même
+      }
+    } catch (verifyError) {
+      console.warn('⚠️ Impossible de vérifier la signature ZIP:', verifyError);
+    }
+    
+    if (onProgress) {
+      onProgress(1.0);
+    }
+    
     return result.uri;
   } catch (error: any) {
     console.error('❌ Erreur lors du téléchargement du fichier ZIP:', error);
+    // Supprimer le fichier partiel en cas d'erreur
+    try {
+      const zipUri = getCachedZipUri();
+      await FileSystem.deleteAsync(zipUri, { idempotent: true });
+    } catch (deleteError) {
+      // Ignorer les erreurs de suppression
+    }
     throw new Error(`Erreur lors du téléchargement du ZIP: ${error.message || 'Erreur inconnue'}`);
   }
 };
@@ -232,21 +344,59 @@ export const extractAudioZip = async (): Promise<void> => {
       await FileSystem.makeDirectoryAsync(audioDir, { intermediates: true });
     }
     
-    // Vérifier si le ZIP existe
+    // Vérifier si le ZIP existe et est valide
     const zipInfo = await FileSystem.getInfoAsync(zipUri);
     if (!zipInfo.exists) {
       throw new Error('Le fichier ZIP n\'existe pas. Veuillez d\'abord télécharger le ZIP.');
     }
     
+    // Vérifier que le fichier n'est pas vide ou trop petit
+    if (!zipInfo.size || zipInfo.size < 1024) {
+      console.error('❌ Le fichier ZIP est invalide (trop petit ou vide), suppression...');
+      await FileSystem.deleteAsync(zipUri, { idempotent: true });
+      throw new Error('Le fichier ZIP téléchargé est invalide. Veuillez réessayer le téléchargement.');
+    }
+    
     try {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const { unzip } = require('react-native-zip-archive');
-      await unzip(zipUri, audioDir);
-    } catch (importError: any) {
-      if (importError.code === 'MODULE_NOT_FOUND' || importError.message?.includes('Cannot find module')) {
-        throw new Error('react-native-zip-archive n\'est pas installé. Installez-le avec: npm install react-native-zip-archive');
+      console.log('📦 Lecture du fichier ZIP...');
+      
+      // Vérifier d'abord la taille du fichier
+      const zipInfo = await FileSystem.getInfoAsync(zipUri);
+      if (zipInfo.exists && zipInfo.size) {
+        console.log(`📦 Taille du fichier ZIP: ${(zipInfo.size / 1024 / 1024).toFixed(2)} MB`);
+        
+        // Si le fichier est très petit (< 1 KB), c'est probablement une page HTML d'erreur
+        if (zipInfo.size < 1024) {
+          throw new Error('Le fichier téléchargé est trop petit pour être un ZIP valide. Vérifiez que le fichier Google Drive est bien partagé publiquement et que l\'ID est correct.');
+        }
       }
-      throw importError;
+      
+      // Utiliser react-native-zip-archive pour décompresser sans charger tout en mémoire
+      // Cette bibliothèque utilise du code natif et peut gérer les gros fichiers efficacement
+      console.log('📦 Décompression du fichier ZIP avec react-native-zip-archive...');
+      console.log(`📦 Extraction vers: ${audioDir}`);
+      
+      try {
+        // react-native-zip-archive décompresse directement depuis le fichier
+        // sans charger tout en mémoire
+        await unzip(zipUri, audioDir);
+        
+        // Vérifier combien de fichiers .mp3 ont été extraits
+        const files = await FileSystem.readDirectoryAsync(audioDir);
+        const mp3Files = files.filter(file => file.endsWith('.mp3'));
+        
+        console.log(`✅ ${mp3Files.length} fichiers audio extraits avec succès`);
+        
+        if (mp3Files.length === 0) {
+          throw new Error('Aucun fichier .mp3 trouvé dans le ZIP après extraction');
+        }
+      } catch (unzipError: any) {
+        console.error('❌ Erreur lors de la décompression avec react-native-zip-archive:', unzipError);
+        throw new Error(`Erreur lors de la décompression: ${unzipError.message || 'Erreur inconnue'}`);
+      }
+    } catch (extractError: any) {
+      console.error('❌ Erreur lors de la décompression du ZIP:', extractError);
+      throw new Error(`Erreur lors de la décompression: ${extractError.message || 'Erreur inconnue'}`);
     }
   } catch (error: any) {
     console.error('❌ Erreur lors de la décompression du ZIP:', error);

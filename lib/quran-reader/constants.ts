@@ -5,6 +5,20 @@ export const SIDEBAR_WIDTH = 260;
 
 export const ARABIC_FONT = 'NotoKufiArabic_400Regular';
 export const AUDIO_DOWNLOAD_PREFERENCE_KEY = 'AUDIO_DOWNLOAD_PREFERENCE';
-export const GOOGLE_DRIVE_ZIP_FILE_ID = '1CUoSf9efkBF2mqN5xlEuDternmhtxq_Z';
-export const AUDIO_ZIP_FILENAME = 'quran-audio.zip';
+export const AUDIO_ZIP_FILENAME = 'audio.zip';
+
+// URL de téléchargement direct du fichier ZIP
+// ⚠️ OBLIGATOIRE : Cette URL doit être configurée pour que le téléchargement fonctionne
+// 
+// Options recommandées :
+// 1. Dropbox (RECOMMANDÉ) : 
+//    - Téléchargez audio.zip sur Dropbox
+//    - Clic droit → Partager → Créer un lien
+//    - Remplacez ?dl=0 par ?dl=1 dans le lien
+//    - Exemple : 'https://www.dropbox.com/s/xxxxxxxxxxxxx/audio.zip?dl=1'
+//
+// 2. OneDrive : https://onedrive.live.com/download?cid=...&resid=...&authkey=...
+//
+// 3. Serveur web : https://votre-serveur.com/audio.zip
+export const AUDIO_ZIP_DOWNLOAD_URL: string | null = 'https://www.dropbox.com/scl/fi/cdriz7jlzob1qnobupeoi/audio.zip?rlkey=rpzxygso02ay7s0qg66p1yphb&e=1&st=getf1ebp&dl=1';
 

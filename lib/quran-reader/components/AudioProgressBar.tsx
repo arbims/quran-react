@@ -109,6 +109,11 @@ export const AudioProgressBar: React.FC<AudioProgressBarProps> = ({
       }}
     >
       <View style={styles.content}>
+        {/* Nom du récitateur */}
+        <View style={styles.reciterContainer}>
+          <Text style={styles.reciterText}>مجدي سالم</Text>
+        </View>
+        
         {/* Boutons de contrôle */}
         <View style={styles.controlsContainer}>
           <TouchableOpacity
@@ -190,6 +195,19 @@ const styles = StyleSheet.create({
   },
   content: {
     width: '100%',
+  },
+  reciterContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  reciterText: {
+    fontSize: 14,
+    color: '#FFFFFF',
+    opacity: 0.9,
+    fontFamily: ARABIC_FONT,
+    fontWeight: '500',
+    textAlign: 'center',
   },
   controlsContainer: {
     flexDirection: 'row',
