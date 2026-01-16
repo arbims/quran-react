@@ -1,7 +1,7 @@
-import React from 'react';
-import { Modal, Pressable, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import React from 'react';
+import { Modal, Pressable, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { ARABIC_FONT } from '../constants';
 
 interface PageInputModalProps {
@@ -29,7 +29,7 @@ export const PageInputModal: React.FC<PageInputModalProps> = ({
       <Pressable style={styles.modalOverlay} onPress={onClose}>
         <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
           <LinearGradient
-            colors={['#1a1a1a', '#2d2d2d', '#1a1a1a']}
+            colors={['#3F5FE8', '#5B7FFF', '#3F5FE8']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.modalGradient}
