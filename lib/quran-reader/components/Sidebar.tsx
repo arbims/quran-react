@@ -121,7 +121,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
             </TouchableOpacity>
             <Text style={[styles.sidebarTitle, { flex: 1, textAlign: 'right' }]}>قائمة السور</Text>
-            <View style={styles.backButton} />
           </View>
           <View style={styles.divider} />
           <FlatList
