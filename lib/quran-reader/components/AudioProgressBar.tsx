@@ -13,6 +13,8 @@ interface AudioProgressBarProps {
   onSeek: (time: number) => void;
   onPlayPause: () => void;
   onStop: () => void;
+  isLooping: boolean;
+  onToggleLoop: () => void;
 }
 
 // Fonction utilitaire pour formater le temps en mm:ss
@@ -33,6 +35,8 @@ export const AudioProgressBar: React.FC<AudioProgressBarProps> = ({
   onSeek,
   onPlayPause,
   onStop,
+  isLooping,
+  onToggleLoop,
 }) => {
   const insets = useSafeAreaInsets();
   const [isDragging, setIsDragging] = useState(false);
@@ -93,7 +97,7 @@ export const AudioProgressBar: React.FC<AudioProgressBarProps> = ({
 
   return (
     <LinearGradient
-      colors={['rgba(26, 26, 26, 0.95)', 'rgba(45, 45, 45, 0.95)']}
+      colors={['rgba(63, 95, 232, 0.95)', 'rgba(91, 127, 255, 0.95)']}
       start={{ x: 0, y: 0 }}
       end={{ x: 0, y: 1 }}
       style={[styles.container, { paddingBottom: Math.max(insets.bottom, 16) }]}
@@ -111,7 +115,7 @@ export const AudioProgressBar: React.FC<AudioProgressBarProps> = ({
       <View style={styles.content}>
         {/* Nom du récitateur */}
         <View style={styles.reciterContainer}>
-          <Text style={styles.reciterText}>مجدي سالم</Text>
+          <Text style={styles.reciterText}>الشيخ علي الحذيفي</Text>
         </View>
         
         {/* Boutons de contrôle */}
@@ -139,6 +143,19 @@ export const AudioProgressBar: React.FC<AudioProgressBarProps> = ({
               name="stop"
               size={24}
               color="#FFFFFF"
+            />
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            onPress={onToggleLoop}
+            disabled={isLoading}
+            style={[styles.controlButton, isLooping && styles.controlButtonActive]}
+            activeOpacity={0.7}
+          >
+            <Ionicons
+              name="repeat"
+              size={24}
+              color={isLooping ? "#FFD700" : "#FFFFFF"}
             />
           </TouchableOpacity>
           
@@ -229,6 +246,10 @@ const styles = StyleSheet.create({
   controlButtonDisabled: {
     opacity: 0.5,
   },
+  controlButtonActive: {
+    backgroundColor: 'rgba(255, 215, 0, 0.3)',
+    borderColor: 'rgba(255, 215, 0, 0.5)',
+  },
   timeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -281,7 +302,7 @@ const styles = StyleSheet.create({
     borderRadius: 11,
     backgroundColor: '#FFFFFF',
     borderWidth: 2,
-    borderColor: '#1a1a1a',
+    borderColor: '#0D47A1',
     marginLeft: -11, // Pour centrer le thumb sur la position
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },

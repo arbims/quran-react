@@ -2,8 +2,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import { ActivityIndicator, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { AudioDownloadPreference } from '../utils/audioDownload';
 import { ARABIC_FONT } from '../constants';
+import { AudioDownloadPreference } from '../utils/audioDownload';
 
 interface AudioDownloadModalProps {
   visible: boolean;
@@ -54,7 +54,7 @@ export const AudioDownloadModal: React.FC<AudioDownloadModalProps> = ({
       <View style={styles.modalOverlay}>
         <View style={styles.modalContainer}>
           <LinearGradient
-            colors={['#1a1a1a', '#2d2d2d', '#1a1a1a']}
+            colors={['#3F5FE8', '#5B7FFF', '#3F5FE8']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.modalContent}

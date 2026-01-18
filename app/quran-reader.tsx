@@ -42,6 +42,7 @@ export default function QuranReaderScreen() {
   
   
   const flatListRef = useRef<FlatList>(null);
+  const isProgrammaticScrollRef = useRef(false); // Flag pour empêcher onViewableItemsChanged pendant les scrolls programmés
   // Initialiser l'animation en fonction de RTL
   const initialSlideValue = I18nManager.isRTL ? -SIDEBAR_WIDTH : SIDEBAR_WIDTH;
   const slideAnim = useRef(new Animated.Value(initialSlideValue)).current;
@@ -94,7 +95,7 @@ export default function QuranReaderScreen() {
   } | null>(null);
 
   // Hook pour la lecture audio
-  const { isPlaying: isAudioPlaying, isLoading: isAudioLoading, error: audioError, play: playAudio, pause: pauseAudio, stop: stopAudio, seek: seekAudio, currentPage: audioCurrentPage, currentTime: audioCurrentTime, duration: audioDuration } = useAudioPlayer();
+  const { isPlaying: isAudioPlaying, isLoading: isAudioLoading, error: audioError, play: playAudio, pause: pauseAudio, stop: stopAudio, seek: seekAudio, currentPage: audioCurrentPage, currentTime: audioCurrentTime, duration: audioDuration, isLooping: isAudioLooping, toggleLoop: toggleAudioLoop } = useAudioPlayer();
 
   // Fonction pour gérer la demande de téléchargement
   const handleDownloadRequest = async (pageNumber: number): Promise<boolean> => {
@@ -275,12 +276,18 @@ export default function QuranReaderScreen() {
   // Restaurer la page actuelle lors de la rotation
   useEffect(() => {
     if (currentPageIndex !== null && flatListRef.current) {
+      // Activer le flag pour empêcher onViewableItemsChanged de mettre à jour pendant le scroll
+      isProgrammaticScrollRef.current = true;
       // Petit délai pour s'assurer que le layout est mis à jour
       setTimeout(() => {
         flatListRef.current?.scrollToIndex({ 
           index: currentPageIndex, 
           animated: false 
         });
+        // Désactiver le flag après le scroll
+        setTimeout(() => {
+          isProgrammaticScrollRef.current = false;
+        }, 300);
       }, 100);
     }
   }, [width, height, currentPageIndex]);
@@ -330,11 +337,17 @@ export default function QuranReaderScreen() {
       // Mettre à jour currentPage et currentPageIndex immédiatement pour éviter les bugs
       setCurrentPage(pageNum);
       setCurrentPageIndex(reversedIndex);
+      // Activer le flag pour empêcher onViewableItemsChanged de mettre à jour pendant le scroll
+      isProgrammaticScrollRef.current = true;
       // Fermer le menu d'abord
       toggleMenu();
       // Attendre un peu pour que le menu se ferme et la FlatList soit prête
       setTimeout(() => {
         flatListRef.current?.scrollToIndex({ index: reversedIndex, animated: true });
+        // Désactiver le flag après le scroll (avec un délai pour laisser le scroll se terminer)
+        setTimeout(() => {
+          isProgrammaticScrollRef.current = false;
+        }, 500);
       }, 300);
     } else {
       Alert.alert('خطأ', `الصفحة ${pageNum} غير موجودة`);
@@ -350,9 +363,15 @@ export default function QuranReaderScreen() {
       // Mettre à jour currentPage et currentPageIndex immédiatement pour éviter les bugs
       setCurrentPage(pageNum);
       setCurrentPageIndex(reversedIndex);
+      // Activer le flag pour empêcher onViewableItemsChanged de mettre à jour pendant le scroll
+      isProgrammaticScrollRef.current = true;
       // Attendre un peu pour que la FlatList soit prête
       setTimeout(() => {
         flatListRef.current?.scrollToIndex({ index: reversedIndex, animated: true });
+        // Désactiver le flag après le scroll (avec un délai pour laisser le scroll se terminer)
+        setTimeout(() => {
+          isProgrammaticScrollRef.current = false;
+        }, 500);
       }, 100);
     }
   };
@@ -370,6 +389,10 @@ export default function QuranReaderScreen() {
   };
 
   const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
+    // Ignorer les changements pendant un scroll programmé
+    if (isProgrammaticScrollRef.current) {
+      return;
+    }
     if (viewableItems.length > 0) {
       const pageNumber = viewableItems[0].item.number;
       setCurrentPage(pageNumber);
@@ -529,6 +552,8 @@ export default function QuranReaderScreen() {
                 });
               });
             }}
+            isLooping={isAudioLooping}
+            onToggleLoop={toggleAudioLoop}
           />
         </View>
       )}

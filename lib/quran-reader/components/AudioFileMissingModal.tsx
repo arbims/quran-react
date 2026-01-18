@@ -27,7 +27,7 @@ export const AudioFileMissingModal: React.FC<AudioFileMissingModalProps> = ({
       <View style={styles.modalOverlay}>
         <View style={styles.modalContainer}>
           <LinearGradient
-            colors={['#1a1a1a', '#2d2d2d', '#1a1a1a']}
+            colors={['#3F5FE8', '#5B7FFF', '#3F5FE8']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.modalContent}
