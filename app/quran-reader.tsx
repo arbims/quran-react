@@ -37,6 +37,7 @@ export default function QuranReaderScreen() {
   
   
   const flatListRef = useRef<FlatList>(null);
+  const isProgrammaticScrollRef = useRef<boolean>(false);
   // Initialiser l'animation en fonction de RTL
   const initialSlideValue = I18nManager.isRTL ? -SIDEBAR_WIDTH : SIDEBAR_WIDTH;
   const slideAnim = useRef(new Animated.Value(initialSlideValue)).current;
@@ -170,6 +171,8 @@ export default function QuranReaderScreen() {
     if (originalIndex !== -1) {
       // Convertir l'index original en index inversé
       const reversedIndex = reversedQuranPages.length - 1 - originalIndex;
+      // Activer le flag pour ignorer les mises à jour pendant le scroll
+      isProgrammaticScrollRef.current = true;
       // Mettre à jour currentPage et currentPageIndex immédiatement pour éviter les bugs
       setCurrentPage(pageNum);
       setCurrentPageIndex(reversedIndex);
@@ -178,6 +181,10 @@ export default function QuranReaderScreen() {
       // Attendre un peu pour que le menu se ferme et la FlatList soit prête
       setTimeout(() => {
         flatListRef.current?.scrollToIndex({ index: reversedIndex, animated: true });
+        // Réinitialiser le flag après l'animation (300ms pour l'animation + marge)
+        setTimeout(() => {
+          isProgrammaticScrollRef.current = false;
+        }, 600);
       }, 300);
     } else {
       Alert.alert('خطأ', `الصفحة ${pageNum} غير موجودة`);
@@ -190,12 +197,18 @@ export default function QuranReaderScreen() {
     if (originalIndex !== -1) {
       // Convertir l'index original en index inversé
       const reversedIndex = reversedQuranPages.length - 1 - originalIndex;
+      // Activer le flag pour ignorer les mises à jour pendant le scroll
+      isProgrammaticScrollRef.current = true;
       // Mettre à jour currentPage et currentPageIndex immédiatement pour éviter les bugs
       setCurrentPage(pageNum);
       setCurrentPageIndex(reversedIndex);
       // Attendre un peu pour que la FlatList soit prête
       setTimeout(() => {
         flatListRef.current?.scrollToIndex({ index: reversedIndex, animated: true });
+        // Réinitialiser le flag après l'animation (500ms pour l'animation + marge)
+        setTimeout(() => {
+          isProgrammaticScrollRef.current = false;
+        }, 600);
       }, 100);
     }
   };
@@ -212,7 +225,35 @@ export default function QuranReaderScreen() {
     jumpToPageWithoutToggle(pageNum);
   };
 
+  const jumpToSurah = (surahIndex: number) => {
+    if (surahIndex === -1) return;
+    // surahIndex est déjà l'index inversé retourné par findPageIndexForSurah
+    const targetPage = reversedQuranPages[surahIndex]?.number;
+    if (targetPage) {
+      // Activer le flag pour ignorer les mises à jour pendant le scroll
+      isProgrammaticScrollRef.current = true;
+      setCurrentPage(targetPage);
+      setCurrentPageIndex(surahIndex);
+      setSurahListVisible(false);
+      toggleMenu();
+      setTimeout(() => {
+        flatListRef.current?.scrollToIndex({ 
+          index: surahIndex, 
+          animated: true 
+        });
+        // Réinitialiser le flag après l'animation (300ms pour l'animation + marge)
+        setTimeout(() => {
+          isProgrammaticScrollRef.current = false;
+        }, 600);
+      }, 300);
+    }
+  };
+
   const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
+    // Ignorer les mises à jour pendant un scroll programmatique pour éviter les oscillations
+    if (isProgrammaticScrollRef.current) {
+      return;
+    }
     if (viewableItems.length > 0) {
       const pageNumber = viewableItems[0].item.number;
       setCurrentPage(pageNumber);
@@ -292,16 +333,23 @@ export default function QuranReaderScreen() {
         lastReadPage={lastReadPage}
         hifdhPage={hifdhPage}
         insets={insets}
-        flatListRef={flatListRef}
         onSaveReading={saveReading}
         onSaveHifdh={saveHifdh}
         onJumpToPage={jumpToPage}
-        onGoToPageInput={() => { setPageInputVisible(true); toggleMenu(); }}
+        onGoToPageInput={() => {
+          if (menuVisible) {
+            const targetValue = I18nManager.isRTL ? 0 : SIDEBAR_WIDTH;
+            Animated.timing(slideAnim, { toValue: targetValue, duration: 200, useNativeDriver: true }).start(() => {
+              setMenuVisible(false);
+              setPageInputVisible(true);
+            });
+          } else {
+            setPageInputVisible(true);
+          }
+        }}
         onSetSurahListVisible={setSurahListVisible}
         onSetLandscapeEnabled={setLandscapeEnabled}
-        onSetCurrentPage={setCurrentPage}
-        onSetCurrentPageIndex={setCurrentPageIndex}
-        onToggleMenu={toggleMenu}
+        onJumpToSurah={jumpToSurah}
       />
 
       {/* Modal pour saisir le numéro de page */}

@@ -1,9 +1,27 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import React from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { Animated, FlatList, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { ARABIC_FONT, SIDEBAR_WIDTH } from '../constants';
-import { findPageIndexForSurah, reversedQuranPages } from '../utils';
+import { findPageIndexForSurah } from '../utils';
+
+interface SurahItemData {
+  id: number;
+  name_ar: string;
+  name_en: string;
+  surahIndex: number;
+}
+
+const SurahListItem = React.memo(({ item, onPress }: { item: SurahItemData; onPress: (index: number) => void }) => (
+  <TouchableOpacity
+    style={styles.surahListItem}
+    onPress={() => onPress(item.surahIndex)}
+    activeOpacity={0.7}
+  >
+    <Text style={styles.surahListItemText}>{item.id}. {item.name_ar}</Text>
+    <Text style={styles.surahListItemSubtext}>{item.name_en}</Text>
+  </TouchableOpacity>
+));
 
 interface SidebarProps {
   slideAnim: Animated.Value;
@@ -13,16 +31,13 @@ interface SidebarProps {
   lastReadPage: number | null;
   hifdhPage: number | null;
   insets: { top: number; bottom: number };
-  flatListRef: React.RefObject<any>;
   onSaveReading: () => void;
   onSaveHifdh: () => void;
   onJumpToPage: (page: number | null) => void;
   onGoToPageInput: () => void;
   onSetSurahListVisible: (visible: boolean) => void;
   onSetLandscapeEnabled: (enabled: boolean) => void;
-  onSetCurrentPage: (page: number) => void;
-  onSetCurrentPageIndex: (index: number) => void;
-  onToggleMenu: () => void;
+  onJumpToSurah: (index: number) => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -33,32 +48,55 @@ export const Sidebar: React.FC<SidebarProps> = ({
   lastReadPage,
   hifdhPage,
   insets,
-  flatListRef,
   onSaveReading,
   onSaveHifdh,
   onJumpToPage,
   onGoToPageInput,
   onSetSurahListVisible,
   onSetLandscapeEnabled,
-  onSetCurrentPage,
-  onSetCurrentPageIndex,
-  onToggleMenu,
+  onJumpToSurah,
 }) => {
+  const surahsDataWithIndex = useMemo(() => {
+    const surahs = require('@/data/surahs').surahs;
+    return surahs.map((surah: { id: number; name_ar: string; name_en: string }) => ({
+      ...surah,
+      surahIndex: findPageIndexForSurah(surah.id),
+    }));
+  }, []);
+
+  const renderSurahItem = useCallback(
+    ({ item }: { item: SurahItemData }) => (
+      <SurahListItem item={item} onPress={onJumpToSurah} />
+    ),
+    [onJumpToSurah]
+  );
+
+  const keyExtractor = useCallback((item: SurahItemData) => String(item.id), []);
+
+  const getItemLayout = useCallback(
+    (_: any, index: number) => ({
+      length: 70,
+      offset: 70 * index,
+      index,
+    }),
+    []
+  );
+
   return (
     <Animated.View style={[styles.sidebarContainer, { transform: [{ translateX: slideAnim }] }]}>
       <LinearGradient
-        colors={['#3F5FE8', '#5B7FFF', '#3F5FE8']} // Dégradé bleu clair
+        colors={['#3F5FE8', '#5B7FFF', '#3F5FE8']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={[styles.sidebar, { paddingTop: insets.top + 48 + 20, paddingBottom: insets.bottom + 20 }]}
       >
-      {!surahListVisible ? (
-        <ScrollView 
-          style={{ flex: 1 }}
-          contentContainerStyle={{ paddingBottom: 20 }}
-          showsVerticalScrollIndicator={true}
-          nestedScrollEnabled={true}
-        >
+        {!surahListVisible ? (
+          <ScrollView
+            style={{ flex: 1 }}
+            contentContainerStyle={{ paddingBottom: 20 }}
+            showsVerticalScrollIndicator={true}
+            nestedScrollEnabled={true}
+          >
           <View style={styles.sidebarHeader}>
             <Text style={styles.sidebarTitle}>الخيارات</Text>
             <Text style={styles.pageIndicator}>صفحة {currentPage}</Text>
@@ -103,7 +141,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <View style={styles.switchRow}>
             <Text style={styles.switchLabel}>تفعيل الوضع الأفقي</Text>
             <View style={styles.switchLabelContainer}>
-              <Ionicons name="phone-portrait-outline" color="#FFFFFF"  size={20} style={styles.switchIcon} />
+              <Ionicons name="phone-portrait-outline" color="#FFFFFF" size={20} style={styles.switchIcon} />
             </View>
             <Switch
               value={landscapeEnabled}
@@ -113,55 +151,35 @@ export const Sidebar: React.FC<SidebarProps> = ({
               ios_backgroundColor="rgba(255,255,255,0.3)"
             />
           </View>
-        </ScrollView>
-      ) : (
-        <>
-          <View style={styles.surahListHeader}>
-            <TouchableOpacity onPress={() => onSetSurahListVisible(false)} style={styles.backButton} activeOpacity={0.7}>
-              <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
-            </TouchableOpacity>
-            <Text style={[styles.sidebarTitle, { flex: 1, textAlign: 'right' }]}>قائمة السور</Text>
-          </View>
-          <View style={styles.divider} />
-          <FlatList
-            data={require('@/data/surahs').surahs}
-            keyExtractor={(item) => item.id.toString()}
-            renderItem={({ item }) => (
+          </ScrollView>
+        ) : (
+          <>
+            <View style={styles.surahListHeader}>
               <TouchableOpacity
-                style={styles.surahListItem}
-                onPress={() => {
-                  const surahIndex = findPageIndexForSurah(item.id);
-                  if (surahIndex !== -1) {
-                    const targetPage = reversedQuranPages[surahIndex]?.number;
-                    if (targetPage) {
-                      onSetCurrentPage(targetPage);
-                      onSetCurrentPageIndex(surahIndex);
-                    }
-                    
-                    onSetSurahListVisible(false);
-                    onToggleMenu();
-                    
-                    setTimeout(() => {
-                      flatListRef.current?.scrollToIndex({ 
-                        index: surahIndex, 
-                        animated: true 
-                      });
-                    }, 300);
-                  }
-                }}
+                onPress={() => onSetSurahListVisible(false)}
+                style={styles.backButton}
+                activeOpacity={0.7}
               >
-                <Text style={styles.surahListItemText}>{item.id}. {item.name_ar}</Text>
-                <Text style={styles.surahListItemSubtext}>{item.name_en}</Text>
+                <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
               </TouchableOpacity>
-            )}
-            style={styles.surahList}
-            nestedScrollEnabled={true}
-            scrollEnabled={true}
-            showsVerticalScrollIndicator={true}
-            contentContainerStyle={{ paddingBottom: 20 }}
-          />
-        </>
-      )}
+              <Text style={[styles.sidebarTitle, { flex: 1, textAlign: 'right' }]}>قائمة السور</Text>
+            </View>
+            <View style={styles.divider} />
+            <FlatList
+              data={surahsDataWithIndex}
+              keyExtractor={keyExtractor}
+              renderItem={renderSurahItem}
+              getItemLayout={getItemLayout}
+              style={styles.surahList}
+              contentContainerStyle={{ paddingBottom: 20 }}
+              removeClippedSubviews={true}
+              maxToRenderPerBatch={3}
+              updateCellsBatchingPeriod={200}
+              initialNumToRender={6}
+              windowSize={2}
+            />
+          </>
+        )}
       </LinearGradient>
     </Animated.View>
   );
@@ -176,12 +194,12 @@ const styles = StyleSheet.create({
     width: SIDEBAR_WIDTH,
     zIndex: 20,
   },
-  sidebar: { 
+  sidebar: {
     flex: 1,
-    paddingHorizontal: 20, 
-    borderTopLeftRadius: 24, 
-    borderBottomLeftRadius: 24, 
-    elevation: 12, 
+    paddingHorizontal: 20,
+    borderTopLeftRadius: 24,
+    borderBottomLeftRadius: 24,
+    elevation: 12,
     direction: 'ltr',
     shadowColor: '#FFFFFF',
     shadowOffset: { width: -4, height: 0 },
@@ -191,26 +209,26 @@ const styles = StyleSheet.create({
     borderLeftColor: '#FFFFFF',
   },
   sidebarHeader: { marginTop: 12, marginBottom: 16 },
-  sidebarTitle: { 
+  sidebarTitle: {
     fontSize: 22,
-    color: '#FFFFFF', 
-    textAlign: 'right', 
-    marginBottom: 8, 
-    marginRight: 0, 
+    color: '#FFFFFF',
+    textAlign: 'right',
+    marginBottom: 8,
+    marginRight: 0,
     letterSpacing: 0.5,
     fontFamily: 'NotoKufiArabic_400Regular',
   },
-  pageIndicator: { 
-    textAlign: 'right', 
-    color: '#FFFFFF', 
-    fontSize: 15, 
-    marginRight: 0, 
+  pageIndicator: {
+    textAlign: 'right',
+    color: '#FFFFFF',
+    fontSize: 15,
+    marginRight: 0,
     fontWeight: '500',
     fontFamily: ARABIC_FONT,
   },
-  menuItem: { 
-    paddingVertical: 16, 
-    borderBottomWidth: 1, 
+  menuItem: {
+    paddingVertical: 16,
+    borderBottomWidth: 1,
     borderBottomColor: 'rgba(255, 255, 255, 0.2)',
     marginVertical: 2,
   },
@@ -223,19 +241,19 @@ const styles = StyleSheet.create({
     marginRight: 12,
     marginLeft: 12,
   },
-  menuItemText: { 
-    fontSize: 15, 
-    color: '#FFFFFF', 
-    textAlign: 'right', 
+  menuItemText: {
+    fontSize: 15,
+    color: '#FFFFFF',
+    textAlign: 'right',
     marginRight: 0,
     fontFamily: ARABIC_FONT,
   },
-  switchRow: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    justifyContent: 'space-between', 
-    paddingVertical: 16, 
-    borderBottomWidth: 1, 
+  switchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 16,
+    borderBottomWidth: 1,
     borderBottomColor: 'rgba(255, 255, 255, 0.2)',
     marginTop: 8,
   },
@@ -248,18 +266,24 @@ const styles = StyleSheet.create({
   switchIcon: {
     marginLeft: 8,
   },
-  switchLabel: { 
-    fontSize: 16, 
-    color: '#FFFFFF', 
-    textAlign: 'right', 
-    marginRight: 0, 
+  switchLabel: {
+    fontSize: 16,
+    color: '#FFFFFF',
+    textAlign: 'right',
+    marginRight: 0,
     fontWeight: '500',
     fontFamily: ARABIC_FONT,
   },
   divider: { height: 1, backgroundColor: 'rgba(255, 255, 255, 0.3)', marginVertical: 12 },
-  surahListHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, paddingVertical: 8 },
-  backButton: { 
-    paddingVertical: 8, 
+  surahListHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+    paddingVertical: 8,
+  },
+  backButton: {
+    paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 8,
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
@@ -269,30 +293,29 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   surahList: { flex: 1 },
-  surahListItem: { 
-    paddingVertical: 14, 
-    paddingHorizontal: 12, 
-    borderBottomWidth: 1, 
+  surahListItem: {
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    borderBottomWidth: 1,
     borderBottomColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 8,
     marginVertical: 2,
   },
-  surahListItemText: { 
-    fontSize: 18, 
-    color: '#FFFFFF', 
-    fontWeight: '600', 
-    marginBottom: 4, 
-    textAlign: 'right', 
+  surahListItemText: {
+    fontSize: 18,
+    color: '#FFFFFF',
+    fontWeight: '600',
+    marginBottom: 4,
+    textAlign: 'right',
     marginRight: 0,
     fontFamily: ARABIC_FONT,
   },
-  surahListItemSubtext: { 
-    fontSize: 14, 
-    color: '#FFFFFF', 
-    textAlign: 'right', 
+  surahListItemSubtext: {
+    fontSize: 14,
+    color: '#FFFFFF',
+    textAlign: 'right',
     marginRight: 0,
     opacity: 0.8,
     fontFamily: ARABIC_FONT,
   },
 });
-
