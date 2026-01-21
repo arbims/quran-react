@@ -26,10 +26,10 @@ import { PageInputModal } from '@/lib/quran-reader/components/PageInputModal';
 import { PageItem } from '@/lib/quran-reader/components/PageItem';
 import { Sidebar } from '@/lib/quran-reader/components/Sidebar';
 import { HIFDH_KEY, LAST_READ_KEY, SIDEBAR_WIDTH } from '@/lib/quran-reader/constants';
-import { useOrientation } from '@/lib/quran-reader/hooks/useOrientation';
 import { useAudioPlayer } from '@/lib/quran-reader/hooks/useAudioPlayer';
+import { useOrientation } from '@/lib/quran-reader/hooks/useOrientation';
 import { allQuranPages, findPageIndexForSurah, getCurrentSurah, reversedQuranPages } from '@/lib/quran-reader/utils';
-import { getAudioDownloadPreference, setAudioDownloadPreference, type AudioDownloadPreference, areAudioFilesExtracted, downloadAndExtractAudioZip } from '@/lib/quran-reader/utils/audioDownload';
+import { areAudioFilesExtracted, downloadAndExtractAudioZip, getAudioDownloadPreference, setAudioDownloadPreference, type AudioDownloadPreference } from '@/lib/quran-reader/utils/audioDownload';
 
 // Import des données depuis les modules refactorisés
 // Les modules ont été déplacés vers @/lib/quran-reader/ pour éviter qu'Expo Router les traite comme des routes
@@ -314,6 +314,15 @@ export default function QuranReaderScreen() {
     }
   };
 
+  const closeMenuImmediate = () => {
+    if (menuVisible) {
+      // Fermer le menu immédiatement sans animation pour une meilleure réactivité
+      setMenuVisible(false);
+      const targetValue = I18nManager.isRTL ? 0 : SIDEBAR_WIDTH;
+      slideAnim.setValue(targetValue);
+    }
+  };
+
   const saveHifdh = async () => {
     await AsyncStorage.setItem(HIFDH_KEY, currentPage.toString());
     setHifdhPage(currentPage);
@@ -505,7 +514,7 @@ export default function QuranReaderScreen() {
         onSaveReading={saveReading}
         onSaveHifdh={saveHifdh}
         onJumpToPage={jumpToPage}
-        onGoToPageInput={() => { setPageInputVisible(true); toggleMenu(); }}
+        onGoToPageInput={() => { closeMenuImmediate(); setPageInputVisible(true); }}
         onSetSurahListVisible={setSurahListVisible}
         onSetLandscapeEnabled={setLandscapeEnabled}
         onSetCurrentPage={setCurrentPage}
