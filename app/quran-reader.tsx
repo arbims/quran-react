@@ -28,7 +28,7 @@ import { Sidebar } from '@/lib/quran-reader/components/Sidebar';
 import { HIFDH_KEY, LAST_READ_KEY, SIDEBAR_WIDTH } from '@/lib/quran-reader/constants';
 import { useAudioPlayer } from '@/lib/quran-reader/hooks/useAudioPlayer';
 import { useOrientation } from '@/lib/quran-reader/hooks/useOrientation';
-import { allQuranPages, findPageIndexForSurah, getCurrentSurah, reversedQuranPages } from '@/lib/quran-reader/utils';
+import { allQuranPages, findPageIndexForSurah, getCurrentSurah, getPageSide, reversedQuranPages } from '@/lib/quran-reader/utils';
 import { areAudioFilesExtracted, downloadAndExtractAudioZip, getAudioDownloadPreference, setAudioDownloadPreference, type AudioDownloadPreference } from '@/lib/quran-reader/utils/audioDownload';
 
 // Import des données depuis les modules refactorisés
@@ -239,6 +239,12 @@ export default function QuranReaderScreen() {
   }, [isLandscape, navbarVisible]);
 
   const currentSurah = getCurrentSurah(currentPage);
+  const pageSide = getPageSide(currentPage); // 'left' ou 'right'
+  
+  // Afficher la position de la page dans la console (pour debug)
+  useEffect(() => {
+    console.log(`Page ${currentPage} est à ${pageSide === 'left' ? 'gauche' : 'droite'}`);
+  }, [currentPage, pageSide]);
 
   useEffect(() => {
     loadStorage();
@@ -427,6 +433,7 @@ export default function QuranReaderScreen() {
         isLandscape={isLandscape}
         insets={insets}
         onToggleMenu={toggleMenu}
+        pageSide={pageSide}
       />
       
       <FlatList

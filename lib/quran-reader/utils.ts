@@ -94,3 +94,12 @@ export const getCurrentSurah = (currentPage: number): Surah | null => {
   return lastSurah;
 };
 
+/**
+ * Détermine si une page est à gauche ou à droite
+ * Pages paires (2, 4, 6, ...) = gauche
+ * Pages impaires (3, 5, 7, ...) = droite
+ */
+export const getPageSide = (pageNumber: number): 'left' | 'right' => {
+  return pageNumber % 2 === 0 ? 'left' : 'right';
+};
+

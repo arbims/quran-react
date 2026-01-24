@@ -13,6 +13,7 @@ interface NavbarProps {
   isLandscape: boolean;
   insets: { top: number; bottom: number; left: number; right: number };
   onToggleMenu: () => void;
+  pageSide: 'left' | 'right';
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -24,8 +25,14 @@ export const Navbar: React.FC<NavbarProps> = ({
   isLandscape,
   insets,
   onToggleMenu,
+  pageSide,
 }) => {
   if (!visible) return null;
+
+  // Debug: vérifier que pageSide est bien passé
+  React.useEffect(() => {
+    console.log('Navbar - currentPage:', currentPage, 'pageSide:', pageSide);
+  }, [currentPage, pageSide]);
 
   return (
     <LinearGradient
@@ -44,12 +51,54 @@ export const Navbar: React.FC<NavbarProps> = ({
         <Text style={styles.navbarPageNumber}>صفحة {currentPage}</Text>
       </View>
       <View style={styles.navbarCenter}>
+        {/* Effet de livre ouvert - design réaliste */}
+        <View style={styles.bookContainer}>
+          {/* Page gauche */}
+          <View style={[
+            styles.bookPage,
+            styles.bookPageLeft,
+            pageSide === 'left' && styles.bookPageActive
+          ]}>
+            {/* Lignes de texte simulées */}
+            <View style={styles.bookLines}>
+              <View style={[styles.bookLine, pageSide === 'left' && styles.bookLineActive]} />
+              <View style={[styles.bookLine, pageSide === 'left' && styles.bookLineActive]} />
+              <View style={[styles.bookLine, pageSide === 'left' && styles.bookLineActive]} />
+            </View>
+          </View>
+          
+          {/* Reliure du livre avec ombre */}
+          <View style={styles.bookSpineContainer}>
+            <View style={styles.bookSpineShadow} />
+            <View style={styles.bookSpine} />
+          </View>
+          
+          {/* Page droite */}
+          <View style={[
+            styles.bookPage,
+            styles.bookPageRight,
+            pageSide === 'right' && styles.bookPageActive
+          ]}>
+            {/* Lignes de texte simulées */}
+            <View style={styles.bookLines}>
+              <View style={[styles.bookLine, pageSide === 'right' && styles.bookLineActive]} />
+              <View style={[styles.bookLine, pageSide === 'right' && styles.bookLineActive]} />
+              <View style={[styles.bookLine, pageSide === 'right' && styles.bookLineActive]} />
+            </View>
+          </View>
+        </View>
+        
+        {/* Badges avec hauteur fixe pour éviter le mouvement */}
         <View style={styles.badgesContainer}>
-          {currentPage === lastReadPage && (
+          {currentPage === lastReadPage ? (
             <Ionicons name="bookmark" size={20} color="#FFFFFF" />
+          ) : (
+            <View style={styles.badgePlaceholder} />
           )}
-          {currentPage === hifdhPage && (
+          {currentPage === hifdhPage ? (
             <Ionicons name="school" size={20} color="#FFFFFF" />
+          ) : (
+            <View style={styles.badgePlaceholder} />
           )}
         </View>
       </View>
@@ -115,6 +164,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 8,
+    height: 40,
   },
   navbarRight: {
     flex: 1,
@@ -134,7 +184,103 @@ const styles = StyleSheet.create({
     alignItems: 'center', 
     justifyContent: 'center', 
     gap: 8, 
-    marginTop: 2 
+    marginTop: 2,
+    height: 20,
+  },
+  badgePlaceholder: {
+    width: 20,
+    height: 20,
+  },
+  bookContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 2,
+    height: 20,
+  },
+  bookPage: {
+    width: 24,
+    height: 18,
+    backgroundColor: '#F5F5DC', // Couleur crème pour les pages
+    borderWidth: 1,
+    borderColor: 'rgba(200, 180, 150, 0.8)',
+    borderRadius: 3,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  bookPageLeft: {
+    borderTopRightRadius: 0,
+    borderBottomRightRadius: 0,
+    borderRightWidth: 0,
+    // Ombre pour effet 3D
+    shadowColor: '#000',
+    shadowOffset: { width: -1, height: 1 },
+    shadowOpacity: 0.3,
+    shadowRadius: 2,
+    elevation: 3,
+  },
+  bookPageRight: {
+    borderTopLeftRadius: 0,
+    borderBottomLeftRadius: 0,
+    borderLeftWidth: 0,
+    // Ombre pour effet 3D
+    shadowColor: '#000',
+    shadowOffset: { width: 1, height: 1 },
+    shadowOpacity: 0.3,
+    shadowRadius: 2,
+    elevation: 3,
+  },
+  bookPageActive: {
+    backgroundColor: '#FFFFFF',
+    borderColor: 'rgba(255, 255, 255, 0.9)',
+    borderWidth: 1.5,
+    shadowColor: '#FFFFFF',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.6,
+    shadowRadius: 4,
+    elevation: 6,
+    transform: [{ scale: 1.05 }],
+  },
+  bookLines: {
+    flex: 1,
+    justifyContent: 'space-around',
+    paddingVertical: 2,
+    paddingHorizontal: 2,
+  },
+  bookLine: {
+    height: 1,
+    backgroundColor: 'rgba(200, 180, 150, 0.3)',
+    marginHorizontal: 1,
+  },
+  bookLineActive: {
+    backgroundColor: 'rgba(100, 80, 60, 0.5)',
+    height: 1.5,
+  },
+  bookSpineContainer: {
+    width: 3,
+    height: 18,
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bookSpineShadow: {
+    position: 'absolute',
+    width: 4,
+    height: 18,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    borderRadius: 1,
+  },
+  bookSpine: {
+    width: 3,
+    height: 18,
+    backgroundColor: '#8B4513', // Couleur marron pour la reliure
+    borderRadius: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 2,
+    elevation: 4,
+    zIndex: 1,
   },
 });
 
