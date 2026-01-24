@@ -86,19 +86,17 @@ export const Navbar: React.FC<NavbarProps> = ({
               <View style={[styles.bookLine, pageSide === 'right' && styles.bookLineActive]} />
             </View>
           </View>
-        </View>
-        
-        {/* Badges avec hauteur fixe pour éviter le mouvement */}
-        <View style={styles.badgesContainer}>
-          {currentPage === lastReadPage ? (
-            <Ionicons name="bookmark" size={20} color="#FFFFFF" />
-          ) : (
-            <View style={styles.badgePlaceholder} />
-          )}
-          {currentPage === hifdhPage ? (
-            <Ionicons name="school" size={20} color="#FFFFFF" />
-          ) : (
-            <View style={styles.badgePlaceholder} />
+          
+          {/* Badges alignés en bas du livre */}
+          {(currentPage === lastReadPage || currentPage === hifdhPage) && (
+            <View style={styles.badgesContainer}>
+              {currentPage === lastReadPage && (
+                <Ionicons name="bookmark" size={14} color="#FFFFFF" />
+              )}
+              {currentPage === hifdhPage && (
+                <Ionicons name="school" size={14} color="#FFFFFF" />
+              )}
+            </View>
           )}
         </View>
       </View>
@@ -162,9 +160,10 @@ const styles = StyleSheet.create({
   navbarCenter: {
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     paddingHorizontal: 8,
     height: 40,
+    paddingTop: 2,
   },
   navbarRight: {
     flex: 1,
@@ -179,32 +178,32 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
     fontFamily: 'NotoKufiArabic_400Regular',
   },
-  badgesContainer: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    justifyContent: 'center', 
-    gap: 8, 
-    marginTop: 2,
-    height: 20,
-  },
-  badgePlaceholder: {
-    width: 20,
-    height: 20,
-  },
   bookContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'center',
+    position: 'relative',
+    height: 16,
+    marginTop: 2,
+  },
+  badgesContainer: {
+    position: 'absolute',
+    bottom: -16,
+    left: 0,
+    right: 0,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 2,
-    height: 20,
+    gap: 4,
+    zIndex: 10,
   },
   bookPage: {
-    width: 24,
-    height: 18,
+    width: 18,
+    height: 14,
     backgroundColor: '#F5F5DC', // Couleur crème pour les pages
     borderWidth: 1,
     borderColor: 'rgba(200, 180, 150, 0.8)',
-    borderRadius: 3,
+    borderRadius: 2,
     overflow: 'hidden',
     position: 'relative',
   },
@@ -257,22 +256,22 @@ const styles = StyleSheet.create({
     height: 1.5,
   },
   bookSpineContainer: {
-    width: 3,
-    height: 18,
+    width: 2,
+    height: 14,
     position: 'relative',
     alignItems: 'center',
     justifyContent: 'center',
   },
   bookSpineShadow: {
     position: 'absolute',
-    width: 4,
-    height: 18,
+    width: 3,
+    height: 14,
     backgroundColor: 'rgba(0, 0, 0, 0.4)',
     borderRadius: 1,
   },
   bookSpine: {
-    width: 3,
-    height: 18,
+    width: 2,
+    height: 14,
     backgroundColor: '#8B4513', // Couleur marron pour la reliure
     borderRadius: 1,
     shadowColor: '#000',
