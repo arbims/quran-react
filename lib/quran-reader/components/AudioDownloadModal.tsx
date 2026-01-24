@@ -54,7 +54,7 @@ export const AudioDownloadModal: React.FC<AudioDownloadModalProps> = ({
       <View style={styles.modalOverlay}>
         <View style={styles.modalContainer}>
           <LinearGradient
-            colors={['#3F5FE8', '#5B7FFF', '#3F5FE8']}
+            colors={['#44572C', '#5A6B3F', '#44572C']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.modalContent}
@@ -85,7 +85,7 @@ export const AudioDownloadModal: React.FC<AudioDownloadModalProps> = ({
                     <View style={[styles.progressBar, { width: `${progressPercentage}%` }]} />
                   </View>
                   <Text style={styles.progressText}>{progressPercentage}%</Text>
-                  <ActivityIndicator size="small" color="#2196F3" style={styles.loader} />
+                  <ActivityIndicator size="small" color="#44572C" style={styles.loader} />
                 </View>
               )}
             </View>
@@ -199,11 +199,11 @@ const styles = StyleSheet.create({
   },
   downloadButton: {
     backgroundColor: 'rgba(76, 175, 80, 0.3)',
-    borderColor: '#4CAF50',
+    borderColor: '#44572C',
   },
   downloadOnceButton: {
     backgroundColor: 'rgba(33, 150, 243, 0.3)',
-    borderColor: '#2196F3',
+    borderColor: '#44572C',
   },
   neverButton: {
     backgroundColor: 'rgba(158, 158, 158, 0.3)',
@@ -240,7 +240,7 @@ const styles = StyleSheet.create({
   },
   progressBar: {
     height: '100%',
-    backgroundColor: '#2196F3',
+    backgroundColor: '#44572C',
     borderRadius: 4,
   },
   progressText: {

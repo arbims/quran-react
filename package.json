@@ -1,5 +1,5 @@
 {
-  "name": "القرآن الكريم رواية قالون",
+  "name": "القرآن الكريم رواية حفص",
   "main": "expo-router/entry",
   "version": "1.0.0",
   "scripts": {
@@ -7,6 +7,8 @@
     "reset-project": "node ./scripts/reset-project.js",
     "android": "node ./scripts/copy-audio-assets.js && expo run:android",
     "android:release": "node ./scripts/copy-audio-assets.js && expo run:android --variant release",
+    "android:apk": "node ./scripts/copy-audio-assets.js && cd android && ./gradlew clean && ./gradlew assembleRelease && adb install app/build/outputs/apk/release/app-release.apk",
+    "android:apk:build": "node ./scripts/copy-audio-assets.js && cd android && ./gradlew clean && ./gradlew assembleRelease",
     "ios": "expo run:ios",
     "web": "expo start --web",
     "lint": "expo lint",

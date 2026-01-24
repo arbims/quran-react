@@ -29,7 +29,7 @@ export const PageInputModal: React.FC<PageInputModalProps> = ({
       <Pressable style={styles.modalOverlay} onPress={onClose}>
         <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
           <LinearGradient
-            colors={['#3F5FE8', '#5B7FFF', '#3F5FE8']}
+            colors={['#44572C', '#5A6B3F', '#44572C']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.modalGradient}

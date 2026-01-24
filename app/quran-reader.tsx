@@ -71,7 +71,7 @@ export default function QuranReaderScreen() {
   const startIndex = getStartIndex();
   const finalStartIndex = startIndex !== -1 ? startIndex : 0;
 
-  const [currentPage, setCurrentPage] = useState<number>(reversedQuranPages[finalStartIndex]?.number || 2);
+  const [currentPage, setCurrentPage] = useState<number>(reversedQuranPages[finalStartIndex]?.number || 1);
   const [hifdhPage, setHifdhPage] = useState<number | null>(null);
   const [lastReadPage, setLastReadPage] = useState<number | null>(null);
   const [menuVisible, setMenuVisible] = useState(false);
@@ -393,8 +393,8 @@ export default function QuranReaderScreen() {
 
   const handleGoToPage = () => {
     const pageNum = parseInt(pageInputValue);
-    if (isNaN(pageNum) || pageNum < 2 || pageNum > 604) {
-      Alert.alert('خطأ', 'يرجى إدخال رقم صفحة صحيح بين 2 و 604');
+    if (isNaN(pageNum) || pageNum < 1 || pageNum > 604) {
+      Alert.alert('خطأ', 'يرجى إدخال رقم صفحة صحيح بين 1 و 604');
       return;
     }
     setPageInputVisible(false);

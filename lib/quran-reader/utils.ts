@@ -15,7 +15,7 @@ export const generateAllQuranPages = (): QuranPage[] => {
     // Pour chaque page de cette sourate
     for (let i = 0; i < surah.pages; i++) {
       const pageNum = startPage + i;
-      if (pageNum >= 2 && pageNum <= 604) {
+      if (pageNum >= 1 && pageNum <= 604) {
         if (!pageToSurahs[pageNum]) {
           pageToSurahs[pageNum] = [];
         }
@@ -27,9 +27,9 @@ export const generateAllQuranPages = (): QuranPage[] => {
   }
   
   // Créer le tableau final avec une seule entrée par page
-  // Inclure TOUTES les pages de 2 à 604, même si elles ne sont pas couvertes par une sourate
+  // Inclure TOUTES les pages de 1 à 604, même si elles ne sont pas couvertes par une sourate
   const pages: QuranPage[] = [];
-  for (let pageNum = 2; pageNum <= 604; pageNum++) {
+  for (let pageNum = 1; pageNum <= 604; pageNum++) {
     pages.push({
       number: pageNum,
       source: getQuranPageSource(pageNum),

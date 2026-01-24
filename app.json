@@ -1,16 +1,16 @@
 {
   "expo": {
-    "name": "القرآن الكريم رواية قالون",
-    "slug": "myapp",
+    "name": "القرآن الكريم رواية حفص",
+    "slug": "quran-hafs",
     "version": "1.0.0",
     "orientation": "default",
     "icon": "./assets/icon.png",
-    "scheme": "myapp",
+    "scheme": "quran-hafs",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.myapp",
+      "bundleIdentifier": "com.quran.hafs",
       "infoPlist": {
         "UIBackgroundModes": [
           "audio"
@@ -34,7 +34,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.myapp",
+      "package": "com.quran.hafs",
       "versionCode": 1,
       "permissions": [
         "FOREGROUND_SERVICE",

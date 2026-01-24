@@ -12,7 +12,7 @@ if (!fs.existsSync(targetDir)) {
 }
 
 // Copier tous les fichiers .mp3 directement dans assets/ (pas dans un sous-dossier)
-// Cela permet d'utiliser asset:///002.mp3 au lieu de asset:///mp3/002.mp3
+// Cela permet d'utiliser asset:///001.mp3, asset:///002.mp3, etc. au lieu de asset:///mp3/001.mp3
 if (fs.existsSync(sourceDir)) {
   const files = fs.readdirSync(sourceDir).filter(file => file.endsWith('.mp3'));
   

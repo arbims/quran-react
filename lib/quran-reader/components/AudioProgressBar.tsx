@@ -97,7 +97,7 @@ export const AudioProgressBar: React.FC<AudioProgressBarProps> = ({
 
   return (
     <LinearGradient
-      colors={['rgba(63, 95, 232, 0.95)', 'rgba(91, 127, 255, 0.95)']}
+      colors={['rgba(68, 87, 44, 0.95)', 'rgba(90, 107, 63, 0.95)']}
       start={{ x: 0, y: 0 }}
       end={{ x: 0, y: 1 }}
       style={[styles.container, { paddingBottom: Math.max(insets.bottom, 16) }]}
@@ -173,7 +173,10 @@ export const AudioProgressBar: React.FC<AudioProgressBarProps> = ({
           {...panResponder.panHandlers}
         >
           <View style={styles.progressBarBackground}>
-            <View
+            <LinearGradient
+              colors={['#5A6B3F', '#44572C', '#3A4A25']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
               style={[
                 styles.progressBarFill,
                 { width: `${Math.min(Math.max(displayProgress, 0), 100)}%` }
@@ -290,7 +293,6 @@ const styles = StyleSheet.create({
     left: 0,
     top: 0,
     height: '100%',
-    backgroundColor: '#FFFFFF',
     borderRadius: 3,
     minWidth: 2,
   },
@@ -302,7 +304,7 @@ const styles = StyleSheet.create({
     borderRadius: 11,
     backgroundColor: '#FFFFFF',
     borderWidth: 2,
-    borderColor: '#0D47A1',
+    borderColor: '#3A4A25',
     marginLeft: -11, // Pour centrer le thumb sur la position
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },

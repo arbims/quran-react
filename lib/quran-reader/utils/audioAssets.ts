@@ -3,6 +3,7 @@
 // Par défaut, les fichiers audio sont téléchargés depuis Dropbox (configuré dans constants.ts)
 // Si vous voulez utiliser des assets locaux, ajoutez-les ici:
 // const audioAssets: Record<string, any> = {
+//   '001': require('../../../assets/mp3/001.mp3'),
 //   '002': require('../../../assets/mp3/002.mp3'),
 //   // etc.
 // };

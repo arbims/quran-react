@@ -29,7 +29,7 @@ export default function SavedPagesScreen() {
       <Button
         title={lastPageIndex !== null ? `Aller à la page ${lastPageIndex + 1}` : 'Aucune page sauvegardée'}
         onPress={goToLastSavedPage}
-        color="#2196F3"
+        color="#44572C"
         disabled={lastPageIndex === null}
       />
     </View>
