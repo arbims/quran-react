@@ -6,7 +6,6 @@ node_modules/
 # Expo
 .expo/
 dist/
-assets/quran/
 web-build/
 expo-env.d.ts
 
