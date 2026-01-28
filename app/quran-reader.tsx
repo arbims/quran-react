@@ -4,16 +4,16 @@ import * as NavigationBar from 'expo-navigation-bar';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  Alert,
-  Animated,
-  FlatList,
-  I18nManager,
-  Platform,
-  Pressable,
-  StatusBar,
-  StyleSheet,
-  useWindowDimensions,
-  View
+    Alert,
+    Animated,
+    FlatList,
+    I18nManager,
+    Platform,
+    Pressable,
+    StatusBar,
+    StyleSheet,
+    useWindowDimensions,
+    View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 

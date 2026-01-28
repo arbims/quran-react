@@ -115,7 +115,7 @@ export const AudioProgressBar: React.FC<AudioProgressBarProps> = ({
       <View style={styles.content}>
         {/* Nom du récitateur */}
         <View style={styles.reciterContainer}>
-          <Text style={styles.reciterText}>الشيخ علي الحذيفي</Text>
+          <Text style={styles.reciterText}>الشيخ سعود الشريم</Text>
         </View>
         
         {/* Boutons de contrôle */}

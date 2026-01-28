@@ -41,7 +41,7 @@ export const Navbar: React.FC<NavbarProps> = ({
       end={{ x: 1, y: 1 }}
       style={[styles.navbar, { 
         paddingTop: isLandscape ? Math.max(insets.top, 8) + 4 : insets.top + 4,
-        paddingBottom: isLandscape ? Math.max(insets.bottom, 8) + 4 : 6,
+        paddingBottom: isLandscape ? Math.max(insets.bottom, 8) + 2 : 4,
         minHeight: isLandscape ? 40 : 44,
         paddingRight: isLandscape ? Math.max(insets.right, 8) : 12,
         paddingLeft: isLandscape ? Math.max(insets.left, 8) : 12
