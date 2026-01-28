@@ -1,6 +1,8 @@
 import { Image } from 'expo-image';
 import React, { useRef } from 'react';
 import { GestureResponderEvent, ScrollView, StyleSheet, View } from 'react-native';
+import { GestureDetector, Gesture } from 'react-native-gesture-handler';
+import Animated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 import { QuranPage } from '../types';
 
 export interface PageItemProps {
@@ -24,6 +26,27 @@ export const PageItem = React.memo<PageItemProps>(({ item, width, height, isLand
   const touchStartXRef = useRef<number>(0);
   const touchStartYRef = useRef<number>(0);
   const isMovingRef = useRef<boolean>(false);
+  
+  // Zoom simple (pinch-to-zoom) partagé portrait/paysage
+  const scale = useSharedValue(1);
+  const scaleStart = useSharedValue(1);
+
+  const pinchGesture = Gesture.Pinch()
+    .onBegin(() => {
+      // Sauvegarder le zoom actuel au début du pinch
+      scaleStart.value = scale.value;
+    })
+    .onUpdate((event) => {
+      // Appliquer un zoom multiplicatif par rapport au zoom de départ
+      const next = scaleStart.value * event.scale;
+      // Limiter le zoom entre x1 et x3
+      const clamped = Math.max(1, Math.min(3, next));
+      scale.value = clamped;
+    });
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
   
   if (isLandscape) {
     // Mode paysage : image avec padding horizontal, hauteur auto et scroll
@@ -85,81 +108,90 @@ export const PageItem = React.memo<PageItemProps>(({ item, width, height, isLand
             lastTapTime.current = 0;
           }}
         >
-          <View
-            style={{ width: imageWidth, height: imageHeight }}
-            onStartShouldSetResponder={() => {
-              return !isScrollingRef.current;
-            }}
-            onMoveShouldSetResponder={() => false}
-            onResponderGrant={(e: GestureResponderEvent) => {
-              touchStartXRef.current = e.nativeEvent.pageX;
-              touchStartYRef.current = e.nativeEvent.pageY;
-              isMovingRef.current = false;
-            }}
-            onResponderMove={(e: GestureResponderEvent) => {
-              const dx = Math.abs(e.nativeEvent.pageX - touchStartXRef.current);
-              const dy = Math.abs(e.nativeEvent.pageY - touchStartYRef.current);
-              if (dx > 8 || dy > 8) {
-                isMovingRef.current = true;
-              }
-            }}
-            onResponderRelease={(e: GestureResponderEvent) => {
-              const now = Date.now();
-              const dx = Math.abs(e.nativeEvent.pageX - touchStartXRef.current);
-              const dy = Math.abs(e.nativeEvent.pageY - touchStartYRef.current);
-              const moved = isMovingRef.current || dx > 8 || dy > 8;
-
-              if (moved || isScrollingRef.current) {
-                isMovingRef.current = false;
-                return;
-              }
-
-              if (now - lastTapTime.current < 400) {
-                onToggleNavbar();
-                lastTapTime.current = 0;
-                if (tapTimeoutRef.current) {
-                  clearTimeout(tapTimeoutRef.current);
-                  tapTimeoutRef.current = null;
-                }
-              } else {
-                lastTapTime.current = now;
-                if (tapTimeoutRef.current) {
-                  clearTimeout(tapTimeoutRef.current);
-                }
-                tapTimeoutRef.current = setTimeout(() => {
-                  if (!isScrollingRef.current && !isMovingRef.current) {
-                    onToggleNavbar();
-                  }
-                  lastTapTime.current = 0;
-                }, 400);
-              }
-              isMovingRef.current = false;
-            }}
-            onResponderTerminationRequest={() => {
-              isMovingRef.current = false;
-              return true;
-            }}
-          >
-            <Image 
-              source={item.source} 
-              style={{ 
-                width: imageWidth,
-                height: imageHeight
+          <GestureDetector gesture={pinchGesture}>
+            <Animated.View
+              style={[
+                { width: imageWidth, height: imageHeight },
+                animatedStyle,
+              ]}
+              onStartShouldSetResponder={() => {
+                return !isScrollingRef.current;
               }}
-              contentFit="contain"
-              cachePolicy="memory-disk"
-            />
-          </View>
+              onMoveShouldSetResponder={() => false}
+              onResponderGrant={(e: GestureResponderEvent) => {
+                touchStartXRef.current = e.nativeEvent.pageX;
+                touchStartYRef.current = e.nativeEvent.pageY;
+                isMovingRef.current = false;
+              }}
+              onResponderMove={(e: GestureResponderEvent) => {
+                const dx = Math.abs(e.nativeEvent.pageX - touchStartXRef.current);
+                const dy = Math.abs(e.nativeEvent.pageY - touchStartYRef.current);
+                if (dx > 8 || dy > 8) {
+                  isMovingRef.current = true;
+                }
+              }}
+              onResponderRelease={(e: GestureResponderEvent) => {
+                const now = Date.now();
+                const dx = Math.abs(e.nativeEvent.pageX - touchStartXRef.current);
+                const dy = Math.abs(e.nativeEvent.pageY - touchStartYRef.current);
+                const moved = isMovingRef.current || dx > 8 || dy > 8;
+
+                if (moved || isScrollingRef.current) {
+                  isMovingRef.current = false;
+                  return;
+                }
+
+                if (now - lastTapTime.current < 400) {
+                  onToggleNavbar();
+                  lastTapTime.current = 0;
+                  if (tapTimeoutRef.current) {
+                    clearTimeout(tapTimeoutRef.current);
+                    tapTimeoutRef.current = null;
+                  }
+                } else {
+                  lastTapTime.current = now;
+                  if (tapTimeoutRef.current) {
+                    clearTimeout(tapTimeoutRef.current);
+                  }
+                  tapTimeoutRef.current = setTimeout(() => {
+                    if (!isScrollingRef.current && !isMovingRef.current) {
+                      onToggleNavbar();
+                    }
+                    lastTapTime.current = 0;
+                  }, 400);
+                }
+                isMovingRef.current = false;
+              }}
+              onResponderTerminationRequest={() => {
+                isMovingRef.current = false;
+                return true;
+              }}
+            >
+              <Image 
+                source={item.source} 
+                style={{ 
+                  width: imageWidth,
+                  height: imageHeight
+                }}
+                contentFit="contain"
+                cachePolicy="memory-disk"
+              />
+            </Animated.View>
+          </GestureDetector>
         </ScrollView>
       </View>
     );
   } else {
-    // Mode portrait : stretch comme avant
+    // Mode portrait : image zoomable
     const portraitBottomInset = Math.max(insets.bottom, 8);
     const portraitContainerHeight = height - navbarHeight - portraitBottomInset;
     return (
       <View style={[styles.pageContainer, { width: width, height: portraitContainerHeight, marginBottom: portraitBottomInset }]}>
-        <Image source={item.source} style={styles.image} contentFit="fill" />
+        <GestureDetector gesture={pinchGesture}>
+          <Animated.View style={[styles.image, animatedStyle]}>
+            <Image source={item.source} style={styles.image} contentFit="fill" />
+          </Animated.View>
+        </GestureDetector>
       </View>
     );
   }
