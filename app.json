@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "القرآن الكريم رواية قالون",
-    "slug": "myapp",
+    "slug": "quran-qaloun",
     "version": "1.0.0",
     "orientation": "default",
     "icon": "./assets/icon.png",
@@ -10,7 +10,7 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.myapp",
+      "bundleIdentifier": "com.quran.qaloun",
       "infoPlist": {
         "UIBackgroundModes": [
           "audio"
@@ -20,7 +20,7 @@
     "androidStatusBar": {
       "hidden": true,
       "translucent": true,
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#E6F4FE"
     },
     "androidNavigationBar": {
       "visible": false
@@ -39,7 +39,9 @@
       "permissions": [
         "FOREGROUND_SERVICE",
         "FOREGROUND_SERVICE_MEDIA_PLAYBACK",
-        "WAKE_LOCK"
+        "WAKE_LOCK",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
       ]
     },
     "web": {
@@ -72,6 +74,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "118f84ee-e498-4e95-b64b-48617365d33c"
+      }
     }
   }
 }
