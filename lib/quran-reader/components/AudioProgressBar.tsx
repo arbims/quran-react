@@ -115,7 +115,7 @@ export const AudioProgressBar: React.FC<AudioProgressBarProps> = ({
       <View style={styles.content}>
         {/* Nom du récitateur */}
         <View style={styles.reciterContainer}>
-          <Text style={styles.reciterText}>الشيخ سعود الشريم</Text>
+          <Text style={styles.reciterText} allowFontScaling={false}>الشيخ سعود الشريم</Text>
         </View>
         
         {/* Boutons de contrôle */}
@@ -160,9 +160,9 @@ export const AudioProgressBar: React.FC<AudioProgressBarProps> = ({
           </TouchableOpacity>
           
           <View style={styles.timeContainer}>
-            <Text style={styles.timeText}>{formatTime(isDragging ? (dragProgress / 100) * duration : currentTime)}</Text>
-            <Text style={styles.separatorText}>/</Text>
-            <Text style={styles.timeText}>{duration > 0 ? formatTime(duration) : '--:--'}</Text>
+            <Text style={styles.timeText} allowFontScaling={false}>{formatTime(isDragging ? (dragProgress / 100) * duration : currentTime)}</Text>
+            <Text style={styles.separatorText} allowFontScaling={false}>/</Text>
+            <Text style={styles.timeText} allowFontScaling={false}>{duration > 0 ? formatTime(duration) : '--:--'}</Text>
           </View>
         </View>
         

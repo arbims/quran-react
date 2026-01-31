@@ -48,7 +48,7 @@ export const Navbar: React.FC<NavbarProps> = ({
       }]}
     >
       <View style={styles.navbarLeft}>
-        <Text style={styles.navbarPageNumber}>صفحة {currentPage}</Text>
+        <Text style={styles.navbarPageNumber} allowFontScaling={false}>صفحة {currentPage}</Text>
       </View>
       <View style={styles.navbarCenter}>
         {/* Effet de livre ouvert - design réaliste */}
@@ -102,7 +102,7 @@ export const Navbar: React.FC<NavbarProps> = ({
       </View>
       <View style={styles.navbarRight}>
         {currentSurah && (
-          <Text style={styles.navbarTitle} numberOfLines={1}>{currentSurah.name_ar}</Text>
+          <Text style={styles.navbarTitle} allowFontScaling={false} numberOfLines={1}>{currentSurah.name_ar}</Text>
         )}
       </View>
       <TouchableOpacity onPress={onToggleMenu} style={styles.menuButton} activeOpacity={0.7}>

@@ -1,7 +1,19 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system/legacy';
-import { unzip } from 'react-native-zip-archive';
+import { Platform } from 'react-native';
 import { AUDIO_DOWNLOAD_PREFERENCE_KEY, AUDIO_ZIP_FILENAME, AUDIO_ZIP_DOWNLOAD_URL } from '../constants';
+
+/**
+ * Import dynamique de react-native-zip-archive pour éviter l'erreur NativeEventEmitter
+ * sur le web (react-native-web n'implémente pas cette API native).
+ */
+const getUnzip = async () => {
+  if (Platform.OS === 'web') {
+    throw new Error('L\'extraction du fichier ZIP n\'est pas supportée sur le web. Utilisez l\'application sur iOS ou Android.');
+  }
+  const { unzip } = await import('react-native-zip-archive');
+  return unzip;
+};
 
 export type AudioDownloadPreference = 'never' | 'ask' | 'always';
 
@@ -378,7 +390,8 @@ export const extractAudioZip = async (): Promise<void> => {
       
       try {
         // react-native-zip-archive décompresse directement depuis le fichier
-        // sans charger tout en mémoire
+        // sans charger tout en mémoire (import dynamique pour éviter NativeEventEmitter sur web)
+        const unzip = await getUnzip();
         await unzip(zipUri, audioDir);
         
         // Vérifier combien de fichiers .mp3 ont été extraits

@@ -2,6 +2,7 @@
 export const HIFDH_KEY = 'HIFDH_PAGE';
 export const LAST_READ_KEY = 'LAST_READ_PAGE';
 export const SIDEBAR_WIDTH = 260;
+export const SIDEBAR_WIDTH_LANDSCAPE = 320; // Plus large en paysage pour éviter que le texte soit coupé
 
 export const ARABIC_FONT = 'NotoKufiArabic_400Regular';
 export const AUDIO_DOWNLOAD_PREFERENCE_KEY = 'AUDIO_DOWNLOAD_PREFERENCE';

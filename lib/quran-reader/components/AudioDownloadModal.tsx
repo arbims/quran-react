@@ -65,15 +65,15 @@ export const AudioDownloadModal: React.FC<AudioDownloadModalProps> = ({
                 size={48} 
                 color="#FFFFFF" 
               />
-              <Text style={styles.modalTitle}>
+              <Text style={styles.modalTitle} allowFontScaling={false}>
                 {isDownloading ? 'جاري التحميل...' : 'تحميل الملفات الصوتية'}
               </Text>
               {!isDownloading && (
                 <>
-                  <Text style={styles.modalSubtitle}>
+                  <Text style={styles.modalSubtitle} allowFontScaling={false}>
                     هل تريد تحميل الملفات الصوتية لتشغيلها بدون اتصال بالإنترنت؟
                   </Text>
-                  <Text style={styles.modalDescription}>
+                  <Text style={styles.modalDescription} allowFontScaling={false}>
                     سيتم تحميل الملفات الصوتية عند الحاجة لتقليل حجم التطبيق.
                   </Text>
                 </>
@@ -84,7 +84,7 @@ export const AudioDownloadModal: React.FC<AudioDownloadModalProps> = ({
                   <View style={styles.progressBarContainer}>
                     <View style={[styles.progressBar, { width: `${progressPercentage}%` }]} />
                   </View>
-                  <Text style={styles.progressText}>{progressPercentage}%</Text>
+                  <Text style={styles.progressText} allowFontScaling={false}>{progressPercentage}%</Text>
                   <ActivityIndicator size="small" color="#44572C" style={styles.loader} />
                 </View>
               )}
@@ -107,7 +107,7 @@ export const AudioDownloadModal: React.FC<AudioDownloadModalProps> = ({
                 activeOpacity={0.7}
               >
                 <Ionicons name="download-outline" size={20} color="#FFFFFF" />
-                <Text style={styles.buttonText}>تحميل الآن فقط</Text>
+                <Text style={styles.buttonText} allowFontScaling={false}>تحميل الآن فقط</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -124,7 +124,7 @@ export const AudioDownloadModal: React.FC<AudioDownloadModalProps> = ({
                 onPress={handleCancel}
                 activeOpacity={0.7}
               >
-                <Text style={styles.cancelButtonText}>إلغاء</Text>
+                <Text style={styles.cancelButtonText} allowFontScaling={false}>إلغاء</Text>
               </TouchableOpacity>
             </View>
             )}

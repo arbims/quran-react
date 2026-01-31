@@ -36,20 +36,21 @@ export const PageInputModal: React.FC<PageInputModalProps> = ({
           >
             <View style={styles.modalHeader}>
               <Ionicons name="navigate" size={28} color="#FFFFFF" />
-              <Text style={styles.modalTitle}>الانتقال إلى صفحة</Text>
+              <Text style={styles.modalTitle} allowFontScaling={false}>الانتقال إلى صفحة</Text>
             </View>
-            <Text style={styles.modalSubtitle}>أدخل رقم الصفحة (1 - 604)</Text>
+            <Text style={styles.modalSubtitle} allowFontScaling={false}>أدخل رقم الصفحة (1 - 604)</Text>
             <View style={styles.inputContainer}>
               <Ionicons name="document-text-outline" size={20} color="#FFFFFF" style={styles.inputIcon} />
               <TextInput
                 style={styles.pageInput}
                 value={pageInputValue}
                 onChangeText={onPageInputChange}
-              placeholder="رقم الصفحة"
-              placeholderTextColor="rgba(255, 255, 255, 0.6)"
+                placeholder="رقم الصفحة"
+                placeholderTextColor="rgba(255, 255, 255, 0.6)"
                 keyboardType="numeric"
                 autoFocus={true}
                 textAlign="right"
+                allowFontScaling={false}
               />
             </View>
             <View style={styles.modalButtons}>
@@ -66,7 +67,7 @@ export const PageInputModal: React.FC<PageInputModalProps> = ({
                 activeOpacity={0.8}
               >
                 <Ionicons name="checkmark" size={18} color="#000000" style={{ marginLeft: 6 }} />
-                <Text style={[styles.modalButtonText, { color: '#000000' }]}>انتقل</Text>
+                <Text style={[styles.modalButtonText, { color: '#000000' }]} allowFontScaling={false}>انتقل</Text>
               </TouchableOpacity>
             </View>
           </LinearGradient>
