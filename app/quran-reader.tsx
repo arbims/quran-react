@@ -8,7 +8,6 @@ import {
     Animated,
     FlatList,
     I18nManager,
-    Platform,
     Pressable,
     StatusBar,
     StyleSheet,
@@ -263,25 +262,19 @@ export default function QuranReaderScreen() {
     if (I18nManager.isRTL) {
       I18nManager.forceRTL(false);
       I18nManager.allowRTL(false);
-      if (Platform.OS === 'android') {
-        // Nécessite un redémarrage de l'app sur Android
-        // Mais on peut quand même forcer le layout
-      }
     }
     
-    // Afficher la barre de navigation Android
-    if (Platform.OS === 'android') {
-      NavigationBar.setVisibilityAsync('visible');
-    }
+    // Afficher la barre de navigation et harmoniser sa couleur (évite le gap noir sur Redmi/MIUI)
+    NavigationBar.setVisibilityAsync('visible');
+    NavigationBar.setBackgroundColorAsync('#f5f0e6'); // Crème, même que le fond
     
     // Empêcher l'écran de se mettre en veille
     activateKeepAwakeAsync();
     
     // Nettoyer à la sortie
     return () => {
-      if (Platform.OS === 'android') {
-        NavigationBar.setVisibilityAsync('visible');
-      }
+      NavigationBar.setVisibilityAsync('visible');
+      NavigationBar.setBackgroundColorAsync('#f5f0e6');
       deactivateKeepAwake();
     };
   }, []);
@@ -454,21 +447,25 @@ export default function QuranReaderScreen() {
           viewabilityConfig={{ itemVisiblePercentThreshold: 50 }}
           getItemLayout={(_, index) => ({ length: width, offset: width * index, index })}
           style={{ 
+            flex: 1,
             marginTop: navbarVisible ? (isLandscape ? Math.max(insets.top, 8) + 40 + 4 : insets.top + 48) : (isLandscape ? Math.max(insets.top, 8) : insets.top),
             marginBottom: audioProgressBarVisible && (isAudioPlaying || audioDuration > 0) ? 100 : 0,
+            backgroundColor: PAGE_BACKGROUND_COLOR,
             direction: 'ltr' 
           }}
           key={`flatlist-${width}-${height}`}
           extraData={{ isLandscape, navbarVisible }}
           renderItem={({ item }) => (
-            <PageItem 
-              item={item} 
-              width={width} 
-              height={height} 
-              isLandscape={isLandscape} 
-              insets={insets}
-              navbarVisible={navbarVisible}
-            />
+            <View style={{ width, flex: 1 }}>
+              <PageItem 
+                item={item} 
+                width={width} 
+                height={height} 
+                isLandscape={isLandscape} 
+                insets={insets}
+                navbarVisible={navbarVisible}
+              />
+            </View>
           )}
           keyExtractor={(item) => `page-${item.number}`}
           onScrollToIndexFailed={info => {

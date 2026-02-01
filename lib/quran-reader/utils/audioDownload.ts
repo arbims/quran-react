@@ -9,7 +9,7 @@ import { AUDIO_DOWNLOAD_PREFERENCE_KEY, AUDIO_ZIP_FILENAME, AUDIO_ZIP_DOWNLOAD_U
  */
 const getUnzip = async () => {
   if (Platform.OS === 'web') {
-    throw new Error('L\'extraction du fichier ZIP n\'est pas supportée sur le web. Utilisez l\'application sur iOS ou Android.');
+    throw new Error('L\'extraction du fichier ZIP n\'est pas supportée sur le web. Utilisez l\'application Android.');
   }
   const { unzip } = await import('react-native-zip-archive');
   return unzip;

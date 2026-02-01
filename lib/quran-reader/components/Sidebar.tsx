@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
-import { Animated, FlatList, Platform, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import { Animated, FlatList, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import { ARABIC_FONT, SIDEBAR_WIDTH, SIDEBAR_WIDTH_LANDSCAPE } from '../constants';
 import { findPageIndexForSurah, reversedQuranPages } from '../utils';
 
@@ -59,16 +59,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const isLandscape = screenWidth > screenHeight;
-  // Sur Android, insets.bottom peut être 0 - garantir un espace minimum pour la barre de navigation
-  const bottomSafeArea = Platform.OS === 'android' ? Math.max(insets.bottom, 48) : insets.bottom;
-  // En mode paysage : marge devant le texte du menu selon la taille des boutons de navigation Android
-  const landscapeNavMargin = isLandscape && Platform.OS === 'android'
-    ? Math.max(insets.left ?? 0, insets.right ?? 0, 48)
-    : 0;
+  // insets.bottom peut être 0 - garantir un espace minimum pour la barre de navigation
+  const bottomSafeArea = Math.max(insets.bottom, 48);
+  // En mode paysage : marge devant le texte du menu selon la taille des boutons de navigation
+  const landscapeNavMargin = isLandscape ? Math.max(insets.left ?? 0, insets.right ?? 0, 48) : 0;
   const fontScale = Math.min(Math.max(screenWidth / 360, 0.85), 1.2);
-  const titleFontSize = 15;
-  const menuFontSize = 16;
-  const switchFontSize = 16;
+  const titleFontSize = 17;
+  const menuFontSize = 15;
+  const switchFontSize = 15;
   
   const sidebarWidth = isLandscape ? SIDEBAR_WIDTH_LANDSCAPE : SIDEBAR_WIDTH;
 
@@ -81,8 +79,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
         style={[
           styles.sidebar,
           {
-            paddingTop: insets.top + 48 + 20,
-            paddingBottom: bottomSafeArea + 20,
+            paddingTop: insets.top + 48 + 8,
+            paddingBottom: bottomSafeArea + 12,
             paddingLeft: 20 + landscapeNavMargin,
             paddingRight: 20 + landscapeNavMargin,
           },
@@ -184,7 +182,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
               onValueChange={onSetLandscapeEnabled}
               thumbColor="#FFFFFF"
               trackColor={{ false: 'rgba(255,255,255,0.3)', true: '#FFFFFF' }}
-              ios_backgroundColor="rgba(255,255,255,0.3)"
             />
           </View>
         </ScrollView>
@@ -231,7 +228,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             nestedScrollEnabled={true}
             scrollEnabled={true}
             showsVerticalScrollIndicator={true}
-            contentContainerStyle={{ paddingBottom: bottomSafeArea + 20 }}
+            contentContainerStyle={{ paddingBottom: bottomSafeArea + 12 }}
           />
         </>
       )}
@@ -263,7 +260,7 @@ const styles = StyleSheet.create({
     borderLeftWidth: 2,
     borderLeftColor: '#FFFFFF',
   },
-  sidebarHeader: { marginTop: 12, marginBottom: 16 },
+  sidebarHeader: { marginTop: 6, marginBottom: 12, paddingBottom: 3 },
   sidebarTitle: { 
     fontSize: 22,
     color: '#FFFFFF', 
@@ -282,7 +279,8 @@ const styles = StyleSheet.create({
     fontFamily: ARABIC_FONT,
   },
   menuItem: { 
-    paddingVertical: 16, 
+    paddingVertical: 10, 
+    paddingBottom: 13,
     borderBottomWidth: 1, 
     borderBottomColor: 'rgba(255, 255, 255, 0.2)',
     marginVertical: 2,
@@ -308,6 +306,7 @@ const styles = StyleSheet.create({
     alignItems: 'center', 
     justifyContent: 'space-between', 
     paddingVertical: 12, 
+    paddingBottom: 15,
     paddingHorizontal: 0,
     gap: 12,
     borderBottomWidth: 1, 
@@ -323,10 +322,11 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     fontFamily: ARABIC_FONT,
   },
-  divider: { height: 1, backgroundColor: 'rgba(255, 255, 255, 0.3)', marginVertical: 12 },
-  surahListHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, paddingVertical: 8 },
+  divider: { height: 1, backgroundColor: 'rgba(255, 255, 255, 0.3)', marginVertical: 8, marginBottom: 11 },
+  surahListHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, paddingVertical: 4, paddingBottom: 7 },
   backButton: { 
     paddingVertical: 8, 
+    paddingBottom: 11,
     paddingHorizontal: 12,
     borderRadius: 8,
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
@@ -337,7 +337,8 @@ const styles = StyleSheet.create({
   },
   surahList: { flex: 1 },
   surahListItem: { 
-    paddingVertical: 14, 
+    paddingVertical: 10, 
+    paddingBottom: 13,
     paddingHorizontal: 12, 
     borderBottomWidth: 1, 
     borderBottomColor: 'rgba(255, 255, 255, 0.2)',
@@ -363,6 +364,7 @@ const styles = StyleSheet.create({
   },
   errorContainer: {
     paddingVertical: 12,
+    paddingBottom: 15,
     paddingHorizontal: 16,
     backgroundColor: 'rgba(255, 0, 0, 0.2)',
     borderRadius: 8,

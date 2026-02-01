@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import React, { useEffect, useState } from 'react';
-import { Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 import { QuranPage } from '../types';
@@ -46,10 +46,8 @@ export const PageItem = React.memo<PageItemProps>(({ item, width, height, isLand
   }));
 
   if (isLandscape) {
-    // Mode paysage : width 100%, height auto (scrollable) - marge des deux côtés (pas en bas) pour la barre de navigation Android
-    const landscapeNavMargin = Platform.OS === 'android'
-      ? Math.max(insets.left ?? 0, insets.right ?? 0, 48)
-      : Math.max(insets.left ?? 0, insets.right ?? 0, 8);
+    // Mode paysage : marge des deux côtés pour la barre de navigation Android
+    const landscapeNavMargin = Math.max(insets.left ?? 0, insets.right ?? 0, 48);
     const landscapeContainerHeight = height - navbarHeight;
     const imageWidth = width - landscapeNavMargin * 2;
     const imageHeight = imageSize
@@ -79,15 +77,14 @@ export const PageItem = React.memo<PageItemProps>(({ item, width, height, isLand
       </View>
     );
   } else {
-    // Mode portrait : image 100% x 100% (remplit tout l'espace)
-    const portraitBottomInset = Math.max(insets.bottom, 8);
-    const portraitContainerHeight = height - navbarHeight - portraitBottomInset;
+    // Mode portrait : image 100% x 100% (remplit tout l'espace) - flex: 1 pour tous les écrans
+    const portraitBottomInset = Math.max(insets.bottom, 24);
 
     return (
-      <View style={[styles.pageContainer, { width: width, height: portraitContainerHeight, marginBottom: portraitBottomInset }]}>
+      <View style={[styles.pageContainer, styles.portraitContainer, { width, marginBottom: portraitBottomInset }]}>
         <GestureDetector gesture={pinchGesture}>
           <Animated.View style={[styles.image, animatedStyle]}>
-            <Image source={item.source} style={styles.image} contentFit="fill" />
+            <Image source={item.source} style={[styles.image, { marginTop: 3 }]} contentFit="fill" />
           </Animated.View>
         </GestureDetector>
       </View>
@@ -109,8 +106,9 @@ export const PageItem = React.memo<PageItemProps>(({ item, width, height, isLand
 PageItem.displayName = 'PageItem';
 
 const styles = StyleSheet.create({
-  pageContainer: { justifyContent: 'flex-start', alignItems: 'center' },
-  image: { width: '100%', height: '100%' },
+  pageContainer: { justifyContent: 'flex-start', alignItems: 'stretch' },
+  portraitContainer: { flex: 1 },
+  image: { width: '100%', height: '100%', flex: 1 },
   portraitScrollView: { flex: 1 },
   portraitScrollContent: { flexGrow: 1, alignItems: 'center' },
   portraitImageWrapper: { alignItems: 'center', justifyContent: 'center' },

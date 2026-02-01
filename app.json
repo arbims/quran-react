@@ -2,21 +2,12 @@
   "expo": {
     "name": "القرآن الكريم رواية حفص",
     "slug": "quran-hafs",
-    "version": "1.0.0",
+    "version": "1.0.2",
     "orientation": "default",
     "icon": "./assets/icon.png",
     "scheme": "quran-hafs",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-    "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.quran.hafs",
-      "infoPlist": {
-        "UIBackgroundModes": [
-          "audio"
-        ]
-      }
-    },
     "androidStatusBar": {
       "hidden": true,
       "translucent": true,
@@ -35,7 +26,7 @@
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.quran.hafs",
-      "versionCode": 1,
+      "versionCode": 3,
       "permissions": [
         "FOREGROUND_SERVICE",
         "FOREGROUND_SERVICE_MEDIA_PLAYBACK",
@@ -80,6 +71,9 @@
         "projectId": "764ce668-0e60-4016-89e0-8129e953af60"
       }
     },
-    "owner": "elarbims"
+    "owner": "elarbims",
+    "ios": {
+      "bundleIdentifier": "com.quran.hafs"
+    }
   }
 }
