@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
-import React, { useRef } from 'react';
-import { GestureResponderEvent, ScrollView, StyleSheet, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 import { QuranPage } from '../types';
@@ -10,170 +10,65 @@ export interface PageItemProps {
   width: number;
   height: number;
   isLandscape: boolean;
-  insets: { top: number; bottom: number };
+  insets: { top: number; bottom: number; left?: number; right?: number };
   navbarVisible: boolean;
-  onToggleNavbar: () => void;
 }
 
-export const PageItem = React.memo<PageItemProps>(({ item, width, height, isLandscape, insets, navbarVisible, onToggleNavbar }) => {
-  const navbarHeight = isLandscape ? (navbarVisible ? Math.max(insets.top, 8) + 40 + 4 : Math.max(insets.top, 8)) : insets.top + 48;
-  const bottomInset = isLandscape ? Math.max(insets.bottom, 60) : insets.bottom;
+export const PageItem = React.memo<PageItemProps>(({ item, width, height, isLandscape, insets, navbarVisible }) => {
+  const [imageSize, setImageSize] = useState<{ width: number; height: number } | null>(null);
+
+  useEffect(() => {
+    setImageSize(null);
+  }, [item.number]);
+
+  // En paysage : hauteur navbar dépend de navbarVisible (tap hide/show). En portrait : toujours visible
+  const navbarHeight = isLandscape
+    ? (navbarVisible ? Math.max(insets.top, 8) + 40 + 4 : Math.max(insets.top, 8))
+    : insets.top + 48;
   const containerHeight = height - navbarHeight;
-  const scrollViewRef = useRef<ScrollView>(null);
-  const isScrollingRef = useRef<boolean>(false);
-  const lastTapTime = useRef<number>(0);
-  const tapTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const touchStartXRef = useRef<number>(0);
-  const touchStartYRef = useRef<number>(0);
-  const isMovingRef = useRef<boolean>(false);
-  
-  // Zoom simple (pinch-to-zoom) partagé portrait/paysage
+
+  // --- Zoom (pinch-to-zoom) simple, sans pan ---
+  // Objectif: ne pas casser le swipe horizontal de la FlatList.
   const scale = useSharedValue(1);
   const scaleStart = useSharedValue(1);
 
   const pinchGesture = Gesture.Pinch()
     .onBegin(() => {
-      // Sauvegarder le zoom actuel au début du pinch
       scaleStart.value = scale.value;
     })
     .onUpdate((event) => {
-      // Appliquer un zoom multiplicatif par rapport au zoom de départ
       const next = scaleStart.value * event.scale;
-      // Limiter le zoom entre x1 et x3
-      const clamped = Math.max(1, Math.min(3, next));
-      scale.value = clamped;
+      scale.value = Math.max(1, Math.min(3, next)); // clamp x1..x3
     });
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
   }));
-  
+
   if (isLandscape) {
-    // Mode paysage : image avec padding horizontal, hauteur auto et scroll
-    const horizontalPadding = 20;
-    const imageWidth = width - (horizontalPadding * 2);
-    const imageAspectRatio = 1.4; // Ratio typique d'une page de Quran
-    const imageHeight = imageWidth * imageAspectRatio;
-    
+    // Mode paysage : marge des deux côtés pour la barre de navigation Android
+    const landscapeNavMargin = Math.max(insets.left ?? 0, insets.right ?? 0, 48);
+    const landscapeContainerHeight = height - navbarHeight;
+    const imageWidth = width - landscapeNavMargin * 2;
+    const imageHeight = imageSize
+      ? (imageWidth / imageSize.width) * imageSize.height
+      : imageWidth * 1.4;
+
     return (
-      <View 
-        style={{ 
-          width: width, 
-          height: containerHeight,
-          backgroundColor: '#fff',
-          flexDirection: 'row'
-        }}
-      >
-        <ScrollView 
-          ref={scrollViewRef}
-          style={{ flex: 1 }}
-          contentContainerStyle={{ 
-            paddingHorizontal: horizontalPadding,
-            paddingBottom: 0,
-            alignItems: 'center'
-          }}
+      <View style={[styles.pageContainer, { width: width, height: landscapeContainerHeight, backgroundColor: '#fff' }]}>
+        <ScrollView
+          style={styles.portraitScrollView}
+          contentContainerStyle={[styles.portraitScrollContent, { paddingHorizontal: landscapeNavMargin }]}
           showsVerticalScrollIndicator={true}
           bounces={true}
-          scrollEnabled={true}
-          nestedScrollEnabled={true}
-          scrollEventThrottle={16}
-          onScrollBeginDrag={() => {
-            isScrollingRef.current = true;
-            isMovingRef.current = true;
-            if (tapTimeoutRef.current) {
-              clearTimeout(tapTimeoutRef.current);
-              tapTimeoutRef.current = null;
-            }
-            lastTapTime.current = 0;
-          }}
-          onScrollEndDrag={() => {
-            setTimeout(() => {
-              isScrollingRef.current = false;
-              isMovingRef.current = false;
-            }, 200);
-          }}
-          onMomentumScrollBegin={() => {
-            isScrollingRef.current = true;
-            isMovingRef.current = true;
-          }}
-          onMomentumScrollEnd={() => {
-            isScrollingRef.current = false;
-            isMovingRef.current = false;
-          }}
-          onScroll={() => {
-            if (tapTimeoutRef.current) {
-              clearTimeout(tapTimeoutRef.current);
-              tapTimeoutRef.current = null;
-            }
-            lastTapTime.current = 0;
-          }}
         >
           <GestureDetector gesture={pinchGesture}>
-            <Animated.View
-              style={[
-                { width: imageWidth, height: imageHeight },
-                animatedStyle,
-              ]}
-              onStartShouldSetResponder={() => {
-                return !isScrollingRef.current;
-              }}
-              onMoveShouldSetResponder={() => false}
-              onResponderGrant={(e: GestureResponderEvent) => {
-                touchStartXRef.current = e.nativeEvent.pageX;
-                touchStartYRef.current = e.nativeEvent.pageY;
-                isMovingRef.current = false;
-              }}
-              onResponderMove={(e: GestureResponderEvent) => {
-                const dx = Math.abs(e.nativeEvent.pageX - touchStartXRef.current);
-                const dy = Math.abs(e.nativeEvent.pageY - touchStartYRef.current);
-                if (dx > 8 || dy > 8) {
-                  isMovingRef.current = true;
-                }
-              }}
-              onResponderRelease={(e: GestureResponderEvent) => {
-                const now = Date.now();
-                const dx = Math.abs(e.nativeEvent.pageX - touchStartXRef.current);
-                const dy = Math.abs(e.nativeEvent.pageY - touchStartYRef.current);
-                const moved = isMovingRef.current || dx > 8 || dy > 8;
-
-                if (moved || isScrollingRef.current) {
-                  isMovingRef.current = false;
-                  return;
-                }
-
-                if (now - lastTapTime.current < 400) {
-                  onToggleNavbar();
-                  lastTapTime.current = 0;
-                  if (tapTimeoutRef.current) {
-                    clearTimeout(tapTimeoutRef.current);
-                    tapTimeoutRef.current = null;
-                  }
-                } else {
-                  lastTapTime.current = now;
-                  if (tapTimeoutRef.current) {
-                    clearTimeout(tapTimeoutRef.current);
-                  }
-                  tapTimeoutRef.current = setTimeout(() => {
-                    if (!isScrollingRef.current && !isMovingRef.current) {
-                      onToggleNavbar();
-                    }
-                    lastTapTime.current = 0;
-                  }, 400);
-                }
-                isMovingRef.current = false;
-              }}
-              onResponderTerminationRequest={() => {
-                isMovingRef.current = false;
-                return true;
-              }}
-            >
-              <Image 
-                source={item.source} 
-                style={{ 
-                  width: imageWidth,
-                  height: imageHeight
-                }}
+            <Animated.View style={[styles.portraitImageWrapper, { width: imageWidth, height: imageHeight }, animatedStyle]}>
+              <Image
+                source={item.source}
+                style={{ width: imageWidth, height: imageHeight }}
                 contentFit="contain"
+                onLoad={(e) => setImageSize({ width: e.source.width, height: e.source.height })}
                 cachePolicy="memory-disk"
               />
             </Animated.View>
@@ -182,14 +77,14 @@ export const PageItem = React.memo<PageItemProps>(({ item, width, height, isLand
       </View>
     );
   } else {
-    // Mode portrait : image zoomable
-    const portraitBottomInset = Math.max(insets.bottom, 8);
-    const portraitContainerHeight = height - navbarHeight - portraitBottomInset;
+    // Mode portrait : image 100% x 100% (remplit tout l'espace) - flex: 1 pour tous les écrans
+    const portraitBottomInset = Math.max(insets.bottom, 24);
+
     return (
-      <View style={[styles.pageContainer, { width: width, height: portraitContainerHeight, marginBottom: portraitBottomInset }]}>
+      <View style={[styles.pageContainer, styles.portraitContainer, { width, marginBottom: portraitBottomInset }]}>
         <GestureDetector gesture={pinchGesture}>
           <Animated.View style={[styles.image, animatedStyle]}>
-            <Image source={item.source} style={styles.image} contentFit="fill" />
+            <Image source={item.source} style={[styles.image, { marginTop: 3 }]} contentFit="fill" />
           </Animated.View>
         </GestureDetector>
       </View>
@@ -211,7 +106,11 @@ export const PageItem = React.memo<PageItemProps>(({ item, width, height, isLand
 PageItem.displayName = 'PageItem';
 
 const styles = StyleSheet.create({
-  pageContainer: { justifyContent: 'flex-start', alignItems: 'center' },
-  image: { width: '100%', height: '100%' },
+  pageContainer: { justifyContent: 'flex-start', alignItems: 'stretch' },
+  portraitContainer: { flex: 1 },
+  image: { width: '100%', height: '100%', flex: 1 },
+  portraitScrollView: { flex: 1 },
+  portraitScrollContent: { flexGrow: 1, alignItems: 'center' },
+  portraitImageWrapper: { alignItems: 'center', justifyContent: 'center' },
 });
 

@@ -1,8 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
-import { Animated, FlatList, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
-import { ARABIC_FONT, SIDEBAR_WIDTH } from '../constants';
+import { Animated, FlatList, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import { ARABIC_FONT, SIDEBAR_WIDTH, SIDEBAR_WIDTH_LANDSCAPE } from '../constants';
 import { findPageIndexForSurah, reversedQuranPages } from '../utils';
 
 interface SidebarProps {
@@ -12,7 +12,7 @@ interface SidebarProps {
   landscapeEnabled: boolean;
   lastReadPage: number | null;
   hifdhPage: number | null;
-  insets: { top: number; bottom: number };
+  insets: { top: number; bottom: number; left?: number; right?: number };
   flatListRef: React.RefObject<any>;
   onSaveReading: () => void;
   onSaveHifdh: () => void;
@@ -57,62 +57,80 @@ export const Sidebar: React.FC<SidebarProps> = ({
   isAudioLoading,
   audioError,
 }) => {
-  // Maintenant que tous les fichiers audio sont dans un ZIP, ils sont toujours disponibles
-  // Le modal de téléchargement s'affichera si nécessaire
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+  const isLandscape = screenWidth > screenHeight;
+  // insets.bottom peut être 0 - garantir un espace minimum pour la barre de navigation
+  const bottomSafeArea = Math.max(insets.bottom, 48);
+  // En mode paysage : marge devant le texte du menu selon la taille des boutons de navigation
+  const landscapeNavMargin = isLandscape ? Math.max(insets.left ?? 0, insets.right ?? 0, 48) : 0;
+  const fontScale = Math.min(Math.max(screenWidth / 360, 0.85), 1.2);
+  const titleFontSize = 17;
+  const menuFontSize = 15;
+  const switchFontSize = 15;
   
+  const sidebarWidth = isLandscape ? SIDEBAR_WIDTH_LANDSCAPE : SIDEBAR_WIDTH;
+
   return (
-    <Animated.View style={[styles.sidebarContainer, { transform: [{ translateX: slideAnim }] }]}>
+    <Animated.View style={[styles.sidebarContainer, { width: sidebarWidth, transform: [{ translateX: slideAnim }] }]}>
       <LinearGradient
-        colors={['#3F5FE8', '#5B7FFF', '#3F5FE8']} // Dégradé bleu clair
+        colors={['#2D4AC7', '#3F5FE8', '#5B7FFF']} // Dégradé bleu (foncé → principal → clair)
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={[styles.sidebar, { paddingTop: insets.top + 48 + 20, paddingBottom: insets.bottom + 20 }]}
+        style={[
+          styles.sidebar,
+          {
+            paddingTop: insets.top + 48 + 8,
+            paddingBottom: bottomSafeArea + 12,
+            paddingLeft: 20 + landscapeNavMargin,
+            paddingRight: 20 + landscapeNavMargin,
+          },
+        ]}
       >
       {!surahListVisible ? (
         <ScrollView 
           style={{ flex: 1 }}
-          contentContainerStyle={{ paddingBottom: 20 }}
+          contentContainerStyle={{ paddingBottom: bottomSafeArea + 20, flexGrow: 1 }}
           showsVerticalScrollIndicator={true}
           nestedScrollEnabled={true}
         >
           <View style={styles.sidebarHeader}>
-            <Text style={styles.sidebarTitle}>الخيارات</Text>
-            <Text style={styles.pageIndicator}>صفحة {currentPage}</Text>
+            <Text style={[styles.sidebarTitle, { fontSize: titleFontSize }]} allowFontScaling={false}>الخيارات</Text>
+            <Text style={[styles.pageIndicator, { fontSize: Math.round(15 * fontScale) }]} allowFontScaling={false}>صفحة {currentPage}</Text>
           </View>
           <View style={styles.divider} />
           <TouchableOpacity style={styles.menuItem} onPress={onSaveReading} activeOpacity={0.7}>
-            <View style={styles.menuItemContent}>
-              <Text style={styles.menuItemText}>حفظ موقع القراءة</Text>
+            <View style={[styles.menuItemContent, { flexShrink: 0 }]}>
+              <Text style={[styles.menuItemText, { fontSize: menuFontSize }]} allowFontScaling={false} numberOfLines={1}>حفظ موقع القراءة</Text>
               <Ionicons name="bookmark-outline" size={22} color="#FFFFFF" style={styles.menuIcon} />
             </View>
           </TouchableOpacity>
           <TouchableOpacity style={styles.menuItem} onPress={() => onJumpToPage(lastReadPage)} activeOpacity={0.7}>
-            <View style={styles.menuItemContent}>
-              <Text style={styles.menuItemText}>العودة إلى علامة القراءة</Text>
+            <View style={[styles.menuItemContent, { flexShrink: 0 }]}>
+              <Text style={[styles.menuItemText, { fontSize: menuFontSize }]} allowFontScaling={false} numberOfLines={1}>العودة إلى علامة القراءة</Text>
               <Ionicons name="bookmark" size={22} color="#FFFFFF" style={styles.menuIcon} />
             </View>
           </TouchableOpacity>
           <TouchableOpacity style={styles.menuItem} onPress={onSaveHifdh} activeOpacity={0.7}>
-            <View style={styles.menuItemContent}>
-              <Text style={styles.menuItemText}> تسجيل الصفحة للحفظ</Text>
+            <View style={[styles.menuItemContent, { flexShrink: 0 }]}>
+              <Text style={[styles.menuItemText, { fontSize: menuFontSize }]} allowFontScaling={false} numberOfLines={1}>تسجيل الصفحة للحفظ</Text>
               <Ionicons name="school-outline" size={22} color="#FFFFFF" style={styles.menuIcon} />
             </View>
           </TouchableOpacity>
           <TouchableOpacity style={styles.menuItem} onPress={() => onJumpToPage(hifdhPage)} activeOpacity={0.7}>
-            <View style={styles.menuItemContent}>
-              <Text style={styles.menuItemText}>الانتقال إلى صفحة الحفظ</Text>
+            <View style={[styles.menuItemContent, { flexShrink: 0 }]}>
+              <Text style={[styles.menuItemText, { fontSize: menuFontSize }]} allowFontScaling={false} numberOfLines={1}>الانتقال إلى صفحة الحفظ</Text>
               <Ionicons name="school" size={22} color="#FFFFFF" style={styles.menuIcon} />
             </View>
           </TouchableOpacity>
           <TouchableOpacity style={styles.menuItem} onPress={onGoToPageInput} activeOpacity={0.7}>
-            <View style={styles.menuItemContent}>
-              <Text style={styles.menuItemText}>الانتقال إلى صفحة محددة</Text>
+            <View style={[styles.menuItemContent, { flexShrink: 0 }]}>
+              <Text style={[styles.menuItemText, { fontSize: menuFontSize }]} allowFontScaling={false} numberOfLines={1}>الانتقال إلى صفحة محددة</Text>
               <Ionicons name="navigate" size={22} color="#FFFFFF" style={styles.menuIcon} />
             </View>
           </TouchableOpacity>
           <TouchableOpacity style={styles.menuItem} onPress={() => onSetSurahListVisible(true)} activeOpacity={0.7}>
-            <View style={styles.menuItemContent}>
-              <Text style={styles.menuItemText}>قائمة السور</Text>
+            <View style={[styles.menuItemContent, { flexShrink: 0 }]}>
+              <Text style={[styles.menuItemText, { fontSize: menuFontSize }]} allowFontScaling={false} numberOfLines={1}>قائمة السور</Text>
               <Ionicons name="list" size={22} color="#FFFFFF" style={styles.menuIcon} />
             </View>
           </TouchableOpacity>
@@ -128,8 +146,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
             activeOpacity={0.7}
             disabled={isAudioLoading && !isAudioPlaying}
           >
-            <View style={styles.menuItemContent}>
-              <Text style={styles.menuItemText}>
+            <View style={[styles.menuItemContent, { flexShrink: 0 }]}>
+              <Text style={[styles.menuItemText, { fontSize: menuFontSize }]} allowFontScaling={false} numberOfLines={1}>
                 {isAudioLoading ? 'جاري التحميل...' : audioError ? 'إعادة المحاولة' : isAudioPlaying ? 'إيقاف مؤقت' : 'تشغيل الصوت'}
               </Text>
               <Ionicons 
@@ -142,7 +160,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </TouchableOpacity>
           {audioError && (
             <View style={styles.errorContainer}>
-              <Text style={styles.errorText}>{audioError}</Text>
+              <Text style={[styles.errorText, { fontSize: menuFontSize }]} allowFontScaling={false}>{audioError}</Text>
             </View>
           )}
           {isAudioPlaying && (
@@ -151,23 +169,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
               onPress={onStopAudio} 
               activeOpacity={0.7}
             >
-              <View style={styles.menuItemContent}>
-                <Text style={styles.menuItemText}>إيقاف الصوت</Text>
+              <View style={[styles.menuItemContent, { flexShrink: 0 }]}>
+                <Text style={[styles.menuItemText, { fontSize: menuFontSize }]} allowFontScaling={false} numberOfLines={1}>إيقاف الصوت</Text>
                 <Ionicons name="stop" size={22} color="#FFFFFF" style={styles.menuIcon} />
               </View>
             </TouchableOpacity>
           )}
           <View style={styles.switchRow}>
-            <Text style={styles.switchLabel}>تفعيل الوضع الأفقي</Text>
-            <View style={styles.switchLabelContainer}>
-              <Ionicons name="phone-portrait-outline" color="#FFFFFF"  size={20} style={styles.switchIcon} />
-            </View>
+            <Text style={[styles.switchLabel, { fontSize: switchFontSize }]} allowFontScaling={false} numberOfLines={1}>الوضع الأفقي</Text>
             <Switch
               value={landscapeEnabled}
               onValueChange={onSetLandscapeEnabled}
               thumbColor="#FFFFFF"
               trackColor={{ false: 'rgba(255,255,255,0.3)', true: '#FFFFFF' }}
-              ios_backgroundColor="rgba(255,255,255,0.3)"
             />
           </View>
         </ScrollView>
@@ -177,7 +191,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <TouchableOpacity onPress={() => onSetSurahListVisible(false)} style={styles.backButton} activeOpacity={0.7}>
               <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
             </TouchableOpacity>
-            <Text style={[styles.sidebarTitle, { flex: 1, textAlign: 'right' }]}>قائمة السور</Text>
+            <Text style={[styles.sidebarTitle, { flex: 1, textAlign: 'right', fontSize: switchFontSize }]} >قائمة السور</Text>
           </View>
           <View style={styles.divider} />
           <FlatList
@@ -207,14 +221,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   }
                 }}
               >
-                <Text style={styles.surahListItemText}>{item.id}. {item.name_ar}</Text>
+                <Text style={[styles.surahListItemText, { fontSize: Math.round(18 * fontScale) }]} allowFontScaling={false} numberOfLines={1}>{item.id}. {item.name_ar}</Text>
               </TouchableOpacity>
             )}
             style={styles.surahList}
             nestedScrollEnabled={true}
             scrollEnabled={true}
             showsVerticalScrollIndicator={true}
-            contentContainerStyle={{ paddingBottom: 20 }}
+            contentContainerStyle={{ paddingBottom: bottomSafeArea + 12 }}
           />
         </>
       )}
@@ -229,7 +243,6 @@ const styles = StyleSheet.create({
     right: 0,
     top: 0,
     bottom: 0,
-    width: SIDEBAR_WIDTH,
     zIndex: 2000, // Au-dessus de la barre de progression audio (zIndex: 1000)
     elevation: 25, // Au-dessus de la barre de progression audio (elevation: 20)
   },
@@ -247,7 +260,7 @@ const styles = StyleSheet.create({
     borderLeftWidth: 2,
     borderLeftColor: '#FFFFFF',
   },
-  sidebarHeader: { marginTop: 12, marginBottom: 16 },
+  sidebarHeader: { marginTop: 6, marginBottom: 12, paddingBottom: 3 },
   sidebarTitle: { 
     fontSize: 22,
     color: '#FFFFFF', 
@@ -266,7 +279,8 @@ const styles = StyleSheet.create({
     fontFamily: ARABIC_FONT,
   },
   menuItem: { 
-    paddingVertical: 16, 
+    paddingVertical: 10, 
+    paddingBottom: 13,
     borderBottomWidth: 1, 
     borderBottomColor: 'rgba(255, 255, 255, 0.2)',
     marginVertical: 2,
@@ -291,21 +305,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row', 
     alignItems: 'center', 
     justifyContent: 'space-between', 
-    paddingVertical: 16, 
+    paddingVertical: 12, 
+    paddingBottom: 15,
+    paddingHorizontal: 0,
+    gap: 12,
     borderBottomWidth: 1, 
     borderBottomColor: 'rgba(255, 255, 255, 0.2)',
-    marginTop: 8,
-  },
-  switchLabelContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  switchIcon: {
-    marginLeft: 8,
+    marginTop: 4,
   },
   switchLabel: { 
+    flex: 1,
     fontSize: 16, 
     color: '#FFFFFF', 
     textAlign: 'right', 
@@ -313,10 +322,11 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     fontFamily: ARABIC_FONT,
   },
-  divider: { height: 1, backgroundColor: 'rgba(255, 255, 255, 0.3)', marginVertical: 12 },
-  surahListHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, paddingVertical: 8 },
+  divider: { height: 1, backgroundColor: 'rgba(255, 255, 255, 0.3)', marginVertical: 8, marginBottom: 11 },
+  surahListHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, paddingVertical: 4, paddingBottom: 7 },
   backButton: { 
     paddingVertical: 8, 
+    paddingBottom: 11,
     paddingHorizontal: 12,
     borderRadius: 8,
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
@@ -327,7 +337,8 @@ const styles = StyleSheet.create({
   },
   surahList: { flex: 1 },
   surahListItem: { 
-    paddingVertical: 14, 
+    paddingVertical: 10, 
+    paddingBottom: 13,
     paddingHorizontal: 12, 
     borderBottomWidth: 1, 
     borderBottomColor: 'rgba(255, 255, 255, 0.2)',
@@ -353,6 +364,7 @@ const styles = StyleSheet.create({
   },
   errorContainer: {
     paddingVertical: 12,
+    paddingBottom: 15,
     paddingHorizontal: 16,
     backgroundColor: 'rgba(255, 0, 0, 0.2)',
     borderRadius: 8,

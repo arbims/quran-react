@@ -1,6 +1,6 @@
 export const surahStartPages: { [key: number]: number } = {
   1: 2,   // Al-Fatiha (commence à la page 2)
-  2: 2,   // Al-Baqarah
+  2: 2,   // Al-Baqarah (commence à la page 2)
   3: 50,  // Al-Imran
   4: 77,  // An-Nisa
   5: 106, // Al-Ma'idah
@@ -115,7 +115,7 @@ export const surahStartPages: { [key: number]: number } = {
   114: 604, // An-Nas
 };
 
-// Static mapping of page images (pages 2 to 604)
+// Static mapping of page images (pages 2 to 604 - page 001 n'existe pas)
 export const pageImageSources: { [key: number]: any } = {
   2: require('@/assets/quran/page_002.jpg'),
   3: require('@/assets/quran/page_003.jpg'),

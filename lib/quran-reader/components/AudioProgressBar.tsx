@@ -115,7 +115,7 @@ export const AudioProgressBar: React.FC<AudioProgressBarProps> = ({
       <View style={styles.content}>
         {/* Nom du récitateur */}
         <View style={styles.reciterContainer}>
-          <Text style={styles.reciterText}>الشيخ علي الحذيفي</Text>
+          <Text style={styles.reciterText} allowFontScaling={false}>الشيخ سعود الشريم</Text>
         </View>
         
         {/* Boutons de contrôle */}
@@ -160,9 +160,9 @@ export const AudioProgressBar: React.FC<AudioProgressBarProps> = ({
           </TouchableOpacity>
           
           <View style={styles.timeContainer}>
-            <Text style={styles.timeText}>{formatTime(isDragging ? (dragProgress / 100) * duration : currentTime)}</Text>
-            <Text style={styles.separatorText}>/</Text>
-            <Text style={styles.timeText}>{duration > 0 ? formatTime(duration) : '--:--'}</Text>
+            <Text style={styles.timeText} allowFontScaling={false}>{formatTime(isDragging ? (dragProgress / 100) * duration : currentTime)}</Text>
+            <Text style={styles.separatorText} allowFontScaling={false}>/</Text>
+            <Text style={styles.timeText} allowFontScaling={false}>{duration > 0 ? formatTime(duration) : '--:--'}</Text>
           </View>
         </View>
         
@@ -173,7 +173,10 @@ export const AudioProgressBar: React.FC<AudioProgressBarProps> = ({
           {...panResponder.panHandlers}
         >
           <View style={styles.progressBarBackground}>
-            <View
+            <LinearGradient
+              colors={['#5B7FFF', '#3F5FE8', '#2D4AC7']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
               style={[
                 styles.progressBarFill,
                 { width: `${Math.min(Math.max(displayProgress, 0), 100)}%` }
@@ -290,7 +293,6 @@ const styles = StyleSheet.create({
     left: 0,
     top: 0,
     height: '100%',
-    backgroundColor: '#FFFFFF',
     borderRadius: 3,
     minWidth: 2,
   },
@@ -302,7 +304,7 @@ const styles = StyleSheet.create({
     borderRadius: 11,
     backgroundColor: '#FFFFFF',
     borderWidth: 2,
-    borderColor: '#0D47A1',
+    borderColor: '#3F5FE8',
     marginLeft: -11, // Pour centrer le thumb sur la position
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },

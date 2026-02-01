@@ -4,16 +4,15 @@ import * as NavigationBar from 'expo-navigation-bar';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  Alert,
-  Animated,
-  FlatList,
-  I18nManager,
-  Platform,
-  Pressable,
-  StatusBar,
-  StyleSheet,
-  useWindowDimensions,
-  View
+    Alert,
+    Animated,
+    FlatList,
+    I18nManager,
+    Pressable,
+    StatusBar,
+    StyleSheet,
+    useWindowDimensions,
+    View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -25,7 +24,7 @@ import { Navbar } from '@/lib/quran-reader/components/Navbar';
 import { PageInputModal } from '@/lib/quran-reader/components/PageInputModal';
 import { PageItem } from '@/lib/quran-reader/components/PageItem';
 import { Sidebar } from '@/lib/quran-reader/components/Sidebar';
-import { HIFDH_KEY, LAST_READ_KEY, SIDEBAR_WIDTH } from '@/lib/quran-reader/constants';
+import { HIFDH_KEY, LAST_READ_KEY, SIDEBAR_WIDTH, SIDEBAR_WIDTH_LANDSCAPE } from '@/lib/quran-reader/constants';
 import { useAudioPlayer } from '@/lib/quran-reader/hooks/useAudioPlayer';
 import { useOrientation } from '@/lib/quran-reader/hooks/useOrientation';
 import { allQuranPages, findPageIndexForSurah, getCurrentSurah, getPageSide, reversedQuranPages } from '@/lib/quran-reader/utils';
@@ -43,16 +42,24 @@ export default function QuranReaderScreen() {
   
   const flatListRef = useRef<FlatList>(null);
   const isProgrammaticScrollRef = useRef(false); // Flag pour empêcher onViewableItemsChanged pendant les scrolls programmés
-  // Initialiser l'animation en fonction de RTL
-  const initialSlideValue = I18nManager.isRTL ? -SIDEBAR_WIDTH : SIDEBAR_WIDTH;
-  const slideAnim = useRef(new Animated.Value(initialSlideValue)).current;
-  const [surahListVisible, setSurahListVisible] = useState(false);
-  const [currentPageIndex, setCurrentPageIndex] = useState<number | null>(null);
-
   // Toggle manuel pour activer/désactiver le mode paysage
   const [landscapeEnabled, setLandscapeEnabled] = useState(false);
   // Détecter si on est en mode paysage (et que le mode paysage est autorisé)
   const isLandscape = landscapeEnabled && width > height;
+  // Largeur de la sidebar : plus large en paysage pour éviter que le texte soit coupé
+  const sidebarWidth = isLandscape ? SIDEBAR_WIDTH_LANDSCAPE : SIDEBAR_WIDTH;
+  const initialSlideValue = I18nManager.isRTL ? -sidebarWidth : sidebarWidth;
+  const slideAnim = useRef(new Animated.Value(initialSlideValue)).current;
+  const [surahListVisible, setSurahListVisible] = useState(false);
+  const [currentPageIndex, setCurrentPageIndex] = useState<number | null>(null);
+
+  // Mettre à jour la position de la sidebar quand on change d'orientation (menu fermé)
+  useEffect(() => {
+    if (!menuVisible) {
+      const targetValue = I18nManager.isRTL ? 0 : sidebarWidth;
+      slideAnim.setValue(targetValue);
+    }
+  }, [isLandscape, sidebarWidth, menuVisible]);
 
   // Calcul de l'index de départ
   const getStartIndex = () => {
@@ -82,7 +89,9 @@ export default function QuranReaderScreen() {
   const isStoppingRef = useRef(false); // Flag pour éviter les animations lors du stop
   const lastTouchTimeRef = useRef<number>(0); // Pour détecter les clics simples
   const touchStartTimeRef = useRef<number>(0); // Temps de début du touch
+  const touchStartXRef = useRef<number>(0); // Position X pour distinguer tap vs swipe
   const touchStartYRef = useRef<number>(0); // Position Y du début du touch
+  const isScrollingRef = useRef<boolean>(false); // True pendant un swipe horizontal
   const [audioDownloadModalVisible, setAudioDownloadModalVisible] = useState(false);
   const [pendingAudioPage, setPendingAudioPage] = useState<number | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -231,7 +240,7 @@ export default function QuranReaderScreen() {
     }
   }, [isAudioPlaying, audioDuration, audioCurrentPage]);
 
-  // Si on revient en mode portrait, forcer la navbar à réapparaître
+  // En portrait : navbar toujours visible. En paysage : tap pour hide/show
   useEffect(() => {
     if (!isLandscape && !navbarVisible) {
       setNavbarVisible(true);
@@ -253,25 +262,19 @@ export default function QuranReaderScreen() {
     if (I18nManager.isRTL) {
       I18nManager.forceRTL(false);
       I18nManager.allowRTL(false);
-      if (Platform.OS === 'android') {
-        // Nécessite un redémarrage de l'app sur Android
-        // Mais on peut quand même forcer le layout
-      }
     }
     
-    // Afficher la barre de navigation Android
-    if (Platform.OS === 'android') {
-      NavigationBar.setVisibilityAsync('visible');
-    }
+    // Afficher la barre de navigation et harmoniser sa couleur (évite le gap noir sur Redmi/MIUI)
+    NavigationBar.setVisibilityAsync('visible');
+    NavigationBar.setBackgroundColorAsync('#f5f0e6'); // Crème, même que le fond
     
     // Empêcher l'écran de se mettre en veille
     activateKeepAwakeAsync();
     
     // Nettoyer à la sortie
     return () => {
-      if (Platform.OS === 'android') {
-        NavigationBar.setVisibilityAsync('visible');
-      }
+      NavigationBar.setVisibilityAsync('visible');
+      NavigationBar.setBackgroundColorAsync('#f5f0e6');
       deactivateKeepAwake();
     };
   }, []);
@@ -310,21 +313,18 @@ export default function QuranReaderScreen() {
   const toggleMenu = () => {
     if (!menuVisible) {
       setMenuVisible(true);
-      // En RTL, on doit inverser la direction de l'animation
-      const targetValue = I18nManager.isRTL ? -SIDEBAR_WIDTH : 0;
+      const targetValue = I18nManager.isRTL ? -sidebarWidth : 0;
       Animated.timing(slideAnim, { toValue: targetValue, duration: 300, useNativeDriver: true }).start();
     } else {
-      // En RTL, on doit inverser la direction de l'animation
-      const targetValue = I18nManager.isRTL ? 0 : SIDEBAR_WIDTH;
+      const targetValue = I18nManager.isRTL ? 0 : sidebarWidth;
       Animated.timing(slideAnim, { toValue: targetValue, duration: 250, useNativeDriver: true }).start(() => setMenuVisible(false));
     }
   };
 
   const closeMenuImmediate = () => {
     if (menuVisible) {
-      // Fermer le menu immédiatement sans animation pour une meilleure réactivité
       setMenuVisible(false);
-      const targetValue = I18nManager.isRTL ? 0 : SIDEBAR_WIDTH;
+      const targetValue = I18nManager.isRTL ? 0 : sidebarWidth;
       slideAnim.setValue(targetValue);
     }
   };
@@ -447,26 +447,25 @@ export default function QuranReaderScreen() {
           viewabilityConfig={{ itemVisiblePercentThreshold: 50 }}
           getItemLayout={(_, index) => ({ length: width, offset: width * index, index })}
           style={{ 
+            flex: 1,
             marginTop: navbarVisible ? (isLandscape ? Math.max(insets.top, 8) + 40 + 4 : insets.top + 48) : (isLandscape ? Math.max(insets.top, 8) : insets.top),
             marginBottom: audioProgressBarVisible && (isAudioPlaying || audioDuration > 0) ? 100 : 0,
+            backgroundColor: PAGE_BACKGROUND_COLOR,
             direction: 'ltr' 
           }}
           key={`flatlist-${width}-${height}`}
-          extraData={isLandscape}
+          extraData={{ isLandscape, navbarVisible }}
           renderItem={({ item }) => (
-            <PageItem 
-              item={item} 
-              width={width} 
-              height={height} 
-              isLandscape={isLandscape} 
-              insets={insets}
-              navbarVisible={navbarVisible}
-              onToggleNavbar={() => {
-                if (isLandscape) {
-                  setNavbarVisible(!navbarVisible);
-                }
-              }}
-            />
+            <View style={{ width, flex: 1 }}>
+              <PageItem 
+                item={item} 
+                width={width} 
+                height={height} 
+                isLandscape={isLandscape} 
+                insets={insets}
+                navbarVisible={navbarVisible}
+              />
+            </View>
           )}
           keyExtractor={(item) => `page-${item.number}`}
           onScrollToIndexFailed={info => {
@@ -478,30 +477,39 @@ export default function QuranReaderScreen() {
           initialNumToRender={1}
           updateCellsBatchingPeriod={50}
           onScrollBeginDrag={() => {
-            // Masquer la barre quand on commence à faire défiler (seulement si l'audio n'est pas en cours de lecture)
+            isScrollingRef.current = true;
             if (audioProgressBarVisible && !isAudioPlaying && audioDuration > 0) {
               setAudioProgressBarVisible(false);
             }
           }}
+          onScrollEndDrag={() => {
+            setTimeout(() => { isScrollingRef.current = false; }, 100);
+          }}
+          onMomentumScrollEnd={() => {
+            isScrollingRef.current = false;
+          }}
           onTouchStart={(e) => {
-            // Enregistrer le temps et la position du début du touch pour détecter les clics simples
             touchStartTimeRef.current = Date.now();
+            touchStartXRef.current = e.nativeEvent.pageX;
             touchStartYRef.current = e.nativeEvent.pageY;
           }}
           onTouchEnd={(e) => {
-            // Masquer la barre seulement si c'est un clic simple (pas un défilement)
-            if (audioProgressBarVisible && !isAudioPlaying && audioDuration > 0) {
-              const touchDuration = Date.now() - touchStartTimeRef.current;
-              const touchDistance = Math.abs(e.nativeEvent.pageY - touchStartYRef.current);
-              
-              // Si le touch était court (< 300ms) et peu de mouvement (< 10px), c'est un clic simple
-              if (touchDuration < 300 && touchDistance < 10) {
-                // Vérifier que le clic n'est pas dans la zone de la barre (bas de l'écran)
-                const screenHeight = height;
-                const progressBarHeight = 120; // Hauteur de la barre + safe area
-                if (e.nativeEvent.pageY < screenHeight - progressBarHeight) {
-                  setAudioProgressBarVisible(false);
-                }
+            const touchDuration = Date.now() - touchStartTimeRef.current;
+            const dx = Math.abs(e.nativeEvent.pageX - touchStartXRef.current);
+            const dy = Math.abs(e.nativeEvent.pageY - touchStartYRef.current);
+            const isTap = touchDuration < 300 && dx < 15 && dy < 15 && !isScrollingRef.current;
+
+            // Mode paysage : tap pour toggle navbar (plein écran)
+            if (isLandscape && isTap) {
+              setNavbarVisible(prev => !prev);
+              return;
+            }
+
+            // Barre audio : tap pour masquer
+            if (audioProgressBarVisible && !isAudioPlaying && audioDuration > 0 && isTap) {
+              const progressBarHeight = 120;
+              if (e.nativeEvent.pageY < height - progressBarHeight) {
+                setAudioProgressBarVisible(false);
               }
             }
           }}
@@ -612,7 +620,11 @@ export default function QuranReaderScreen() {
   );
 }
 
+// Couleur crème pour correspondre aux pages du Coran - évite la barre noire visible
+// sur certains appareils Android (zone sous le contenu / barre de navigation)
+const PAGE_BACKGROUND_COLOR = '#f5f0e6';
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000', direction: 'ltr' },
+  container: { flex: 1, backgroundColor: PAGE_BACKGROUND_COLOR, direction: 'ltr' },
   overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 10 },
 });

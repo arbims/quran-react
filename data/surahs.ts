@@ -1,6 +1,6 @@
 export const surahs = [
-  { id: 1, name_ar: 'الفاتحة', name_en: 'Al-Fatiha', startPage: 1, pages: 1},
-  { id: 2, name_ar: 'البقرة', name_en: 'Al-Baqarah', startPage: 1, pages: 49 },
+  { id: 1, name_ar: 'الفاتحة', name_en: 'Al-Fatiha', startPage: 2, pages: 1},
+  { id: 2, name_ar: 'البقرة', name_en: 'Al-Baqarah', startPage: 2, pages: 49 },
   { id: 3, name_ar: 'آل عمران', name_en: 'Al-Imran', startPage: 50, pages: 27 },
   { id: 4, name_ar: 'النساء', name_en: 'An-Nisa', startPage: 77, pages: 29 },
   { id: 5, name_ar: 'المائدة', name_en: 'Al-Ma\'idah', startPage: 106, pages: 21 },

@@ -12,7 +12,10 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "lint": "expo lint",
-    "copy-audio": "node ./scripts/copy-audio-assets.js"
+    "copy-audio": "node ./scripts/copy-audio-assets.js",
+    "compress-images": "node ./scripts/compress-quran-images.js",
+    "check-keystore": "node ./scripts/check-keystore-sha1.js",
+    "list-aliases": "node ./scripts/list-keystore-aliases.js"
   },
   "dependencies": {
     "@expo-google-fonts/noto-kufi-arabic": "^0.4.3",
@@ -61,6 +64,7 @@
     "@types/react": "~19.1.0",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~10.0.0",
+    "sharp": "^0.33.5",
     "typescript": "~5.9.2"
   },
   "private": true

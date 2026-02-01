@@ -36,19 +36,19 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   return (
     <LinearGradient
-      colors={['#3F5FE8', '#5B7FFF', '#3F5FE8']} // Dégradé bleu clair
+      colors={['#5B7FFF', '#3F5FE8', '#2D4AC7']} // Dégradé bleu (inversé : clair → foncé)
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={[styles.navbar, { 
         paddingTop: isLandscape ? Math.max(insets.top, 8) + 4 : insets.top + 4,
-        paddingBottom: isLandscape ? Math.max(insets.bottom, 8) + 4 : 6,
+        paddingBottom: isLandscape ? Math.max(insets.bottom, 8) + 2 : 4,
         minHeight: isLandscape ? 40 : 44,
         paddingRight: isLandscape ? Math.max(insets.right, 8) : 12,
         paddingLeft: isLandscape ? Math.max(insets.left, 8) : 12
       }]}
     >
       <View style={styles.navbarLeft}>
-        <Text style={styles.navbarPageNumber}>صفحة {currentPage}</Text>
+        <Text style={styles.navbarPageNumber} allowFontScaling={false}>صفحة {currentPage}</Text>
       </View>
       <View style={styles.navbarCenter}>
         {/* Effet de livre ouvert - design réaliste */}
@@ -102,7 +102,7 @@ export const Navbar: React.FC<NavbarProps> = ({
       </View>
       <View style={styles.navbarRight}>
         {currentSurah && (
-          <Text style={styles.navbarTitle} numberOfLines={1}>{currentSurah.name_ar}</Text>
+          <Text style={styles.navbarTitle} allowFontScaling={false} numberOfLines={1}>{currentSurah.name_ar}</Text>
         )}
       </View>
       <TouchableOpacity onPress={onToggleMenu} style={styles.menuButton} activeOpacity={0.7}>
@@ -180,7 +180,7 @@ const styles = StyleSheet.create({
   },
   bookContainer: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
     height: 16,

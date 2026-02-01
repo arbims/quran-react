@@ -3,7 +3,6 @@ import { surahs } from '@/data/surahs';
 import * as NavigationBar from 'expo-navigation-bar';
 import { useRouter } from 'expo-router';
 import React, { useEffect } from 'react';
-import { Platform } from 'react-native';
 
 const LAST_READ_KEY = 'LAST_READ_PAGE';
 
@@ -11,9 +10,7 @@ export default function HomeScreen() {
   const router = useRouter();
 
   useEffect(() => {
-    if (Platform.OS === 'android') {
-      NavigationBar.setVisibilityAsync("hidden");
-    }
+    NavigationBar.setVisibilityAsync("hidden");
     
     // Rediriger automatiquement vers la dernière page sauvegardée
     const loadAndRedirect = async () => {

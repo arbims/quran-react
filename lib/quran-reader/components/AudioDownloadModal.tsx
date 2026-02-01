@@ -54,7 +54,7 @@ export const AudioDownloadModal: React.FC<AudioDownloadModalProps> = ({
       <View style={styles.modalOverlay}>
         <View style={styles.modalContainer}>
           <LinearGradient
-            colors={['#3F5FE8', '#5B7FFF', '#3F5FE8']}
+            colors={['#2D4AC7', '#3F5FE8', '#5B7FFF']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.modalContent}
@@ -65,15 +65,15 @@ export const AudioDownloadModal: React.FC<AudioDownloadModalProps> = ({
                 size={48} 
                 color="#FFFFFF" 
               />
-              <Text style={styles.modalTitle}>
+              <Text style={styles.modalTitle} allowFontScaling={false}>
                 {isDownloading ? 'جاري التحميل...' : 'تحميل الملفات الصوتية'}
               </Text>
               {!isDownloading && (
                 <>
-                  <Text style={styles.modalSubtitle}>
+                  <Text style={styles.modalSubtitle} allowFontScaling={false}>
                     هل تريد تحميل الملفات الصوتية لتشغيلها بدون اتصال بالإنترنت؟
                   </Text>
-                  <Text style={styles.modalDescription}>
+                  <Text style={styles.modalDescription} allowFontScaling={false}>
                     سيتم تحميل الملفات الصوتية عند الحاجة لتقليل حجم التطبيق.
                   </Text>
                 </>
@@ -84,8 +84,8 @@ export const AudioDownloadModal: React.FC<AudioDownloadModalProps> = ({
                   <View style={styles.progressBarContainer}>
                     <View style={[styles.progressBar, { width: `${progressPercentage}%` }]} />
                   </View>
-                  <Text style={styles.progressText}>{progressPercentage}%</Text>
-                  <ActivityIndicator size="small" color="#2196F3" style={styles.loader} />
+                  <Text style={styles.progressText} allowFontScaling={false}>{progressPercentage}%</Text>
+                  <ActivityIndicator size="small" color="#3F5FE8" style={styles.loader} />
                 </View>
               )}
             </View>
@@ -107,7 +107,7 @@ export const AudioDownloadModal: React.FC<AudioDownloadModalProps> = ({
                 activeOpacity={0.7}
               >
                 <Ionicons name="download-outline" size={20} color="#FFFFFF" />
-                <Text style={styles.buttonText}>تحميل الآن فقط</Text>
+                <Text style={styles.buttonText} allowFontScaling={false}>تحميل الآن فقط</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -124,7 +124,7 @@ export const AudioDownloadModal: React.FC<AudioDownloadModalProps> = ({
                 onPress={handleCancel}
                 activeOpacity={0.7}
               >
-                <Text style={styles.cancelButtonText}>إلغاء</Text>
+                <Text style={styles.cancelButtonText} allowFontScaling={false}>إلغاء</Text>
               </TouchableOpacity>
             </View>
             )}
@@ -199,11 +199,11 @@ const styles = StyleSheet.create({
   },
   downloadButton: {
     backgroundColor: 'rgba(76, 175, 80, 0.3)',
-    borderColor: '#4CAF50',
+    borderColor: '#3F5FE8',
   },
   downloadOnceButton: {
     backgroundColor: 'rgba(33, 150, 243, 0.3)',
-    borderColor: '#2196F3',
+    borderColor: '#3F5FE8',
   },
   neverButton: {
     backgroundColor: 'rgba(158, 158, 158, 0.3)',
@@ -240,7 +240,7 @@ const styles = StyleSheet.create({
   },
   progressBar: {
     height: '100%',
-    backgroundColor: '#2196F3',
+    backgroundColor: '#3F5FE8',
     borderRadius: 4,
   },
   progressText: {

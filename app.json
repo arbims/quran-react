@@ -34,7 +34,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.myapp",
+      "package": "com.quran.qaloun",
       "versionCode": 1,
       "permissions": [
         "FOREGROUND_SERVICE",
@@ -78,8 +78,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "118f84ee-e498-4e95-b64b-48617365d33c"
+        "projectId": "7988068c-a402-4ab0-af15-2ddea5172c16"
       }
-    }
+    },
+    "owner": "elarbims"
   }
 }

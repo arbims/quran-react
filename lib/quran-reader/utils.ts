@@ -27,7 +27,7 @@ export const generateAllQuranPages = (): QuranPage[] => {
   }
   
   // Créer le tableau final avec une seule entrée par page
-  // Inclure TOUTES les pages de 2 à 604, même si elles ne sont pas couvertes par une sourate
+  // Inclure TOUTES les pages de 2 à 604 (page 001 n'existe pas)
   const pages: QuranPage[] = [];
   for (let pageNum = 2; pageNum <= 604; pageNum++) {
     pages.push({

@@ -27,18 +27,18 @@ export const AudioFileMissingModal: React.FC<AudioFileMissingModalProps> = ({
       <View style={styles.modalOverlay}>
         <View style={styles.modalContainer}>
           <LinearGradient
-            colors={['#3F5FE8', '#5B7FFF', '#3F5FE8']}
+            colors={['#2D4AC7', '#3F5FE8', '#5B7FFF']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.modalContent}
           >
             <View style={styles.modalHeader}>
               <Ionicons name="information-circle-outline" size={48} color="#FFA500" />
-              <Text style={styles.modalTitle}>معلومة</Text>
-              <Text style={styles.modalMessage}>
+              <Text style={styles.modalTitle} allowFontScaling={false}>معلومة</Text>
+              <Text style={styles.modalMessage} allowFontScaling={false}>
                 لا يوجد ملف صوتي متاح لهذه الصفحة
               </Text>
-              <Text style={styles.modalPageNumber}>
+              <Text style={styles.modalPageNumber} allowFontScaling={false}>
                 صفحة {pageNumber} ({formattedPage}.mp3)
               </Text>
             </View>
@@ -48,7 +48,7 @@ export const AudioFileMissingModal: React.FC<AudioFileMissingModalProps> = ({
               onPress={onClose}
               activeOpacity={0.7}
             >
-              <Text style={styles.buttonText}>حسناً</Text>
+              <Text style={styles.buttonText} allowFontScaling={false}>حسناً</Text>
             </TouchableOpacity>
           </LinearGradient>
         </View>
