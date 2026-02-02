@@ -177,7 +177,7 @@ export const AudioProgressBar: React.FC<AudioProgressBarProps> = ({
         <View style={styles.draggableArea} {...moveBarPanResponder.panHandlers}>
           <View style={styles.reciterContainer}>
             <Ionicons name="reorder-three" size={20} color="rgba(255,255,255,0.7)" style={styles.dragHandleIcon} />
-            <Text style={styles.reciterText} allowFontScaling={false}>الشيخ سعود الشريم</Text>
+            <Text style={styles.reciterText} allowFontScaling={false}>الشيخ علي الحذيفي </Text>
           </View>
         
           {/* Boutons de contrôle */}
