@@ -73,7 +73,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   return (
     <Animated.View style={[styles.sidebarContainer, { width: sidebarWidth, transform: [{ translateX: slideAnim }] }]}>
       <LinearGradient
-        colors={['#2D4AC7', '#3F5FE8', '#5B7FFF']} // Dégradé bleu (foncé → principal → clair)
+        colors={['#3F5FE8', '#5B7FFF', '#3F5FE8']} // Dégradé bleu
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={[

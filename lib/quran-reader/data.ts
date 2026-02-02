@@ -115,7 +115,9 @@ export const surahStartPages: { [key: number]: number } = {
   114: 604, // An-Nas
 };
 
-// Static mapping of page images (pages 2 to 604 - page 001 n'existe pas)
+// Static mapping of page images (pages 2 to 604)
+// Note: Les pages commencent à 2, et les images commencent à page_002.jpg
+// La page logique N correspond directement à page_NNN.jpg
 export const pageImageSources: { [key: number]: any } = {
   2: require('@/assets/quran/page_002.jpg'),
   3: require('@/assets/quran/page_003.jpg'),
@@ -723,6 +725,15 @@ export const pageImageSources: { [key: number]: any } = {
 };
 
 // Helper function to get the correct source
+// Les images commencent à page_002.jpg (pas page_001.jpg)
+// Le mapping pageImageSources contient déjà les bonnes correspondances :
+// - pageImageSources[1] = page_002.jpg (page logique 1)
+// - pageImageSources[2] = page_003.jpg (page logique 2)
+// - etc.
 export const getQuranPageSource = (pageNumber: number) => {
+  // Si la page dépasse 603, retourner la dernière image disponible
+  if (pageNumber > 603) {
+    return pageImageSources[603];
+  }
   return pageImageSources[pageNumber];
 };

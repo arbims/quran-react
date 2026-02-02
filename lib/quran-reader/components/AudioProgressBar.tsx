@@ -1,9 +1,20 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useRef, useState } from 'react';
-import { PanResponder, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { PanResponder, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ARABIC_FONT } from '../constants';
+
+/**
+ * Floating movable AudioProgressBar
+ * - Floats above content (position absolute, rounded corners, shadow)
+ * - Draggable: drag the top area (reciter + controls) to move the bar anywhere on screen
+ * - Seek: drag horizontally on the progress strip to seek
+ * - Default position: bottom of screen; position persists while moved
+ */
+
+const BAR_APPROX_HEIGHT = 160;
+const MARGIN = 16;
 
 interface AudioProgressBarProps {
   currentTime: number;
@@ -39,9 +50,27 @@ export const AudioProgressBar: React.FC<AudioProgressBarProps> = ({
   onToggleLoop,
 }) => {
   const insets = useSafeAreaInsets();
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const [isDragging, setIsDragging] = useState(false);
   const [dragProgress, setDragProgress] = useState(0);
   const progressBarRef = useRef<View>(null);
+  const barWidth = Math.max(screenWidth - 2 * MARGIN, 200);
+
+  const [hasUserMovedBar, setHasUserMovedBar] = useState(false);
+  const getBottomY = () =>
+    Math.max(0, screenHeight - BAR_APPROX_HEIGHT - MARGIN - Math.max(insets.bottom, 0));
+  const [position, setPosition] = useState(() => ({ x: MARGIN, y: 0 }));
+  const positionRef = useRef(position);
+  positionRef.current = position;
+  const dragStartPosition = useRef({ x: MARGIN, y: 0 });
+
+  React.useEffect(() => {
+    if (!hasUserMovedBar) {
+      const y = getBottomY();
+      setPosition((prev) => ({ x: MARGIN, y }));
+      dragStartPosition.current = { x: MARGIN, y };
+    }
+  }, [screenHeight, insets.bottom, hasUserMovedBar]);
 
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
   const displayProgress = isDragging ? dragProgress : progress;
@@ -91,35 +120,68 @@ export const AudioProgressBar: React.FC<AudioProgressBarProps> = ({
     })
   ).current;
 
-  // La visibilité est maintenant entièrement contrôlée par le composant parent
-  // Ne pas retourner null ici pour éviter les animations de disparition/réapparition
-  // Le parent (quran-reader.tsx) gère la visibilité via audioProgressBarVisible
+  const isDraggingBarRef = useRef(false);
+
+  const moveBarPanResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: () => {
+        dragStartPosition.current = positionRef.current;
+      },
+      onPanResponderMove: (_, gestureState) => {
+        isDraggingBarRef.current = true;
+        setHasUserMovedBar(true);
+        const { dx, dy } = gestureState;
+        const start = dragStartPosition.current;
+        const newX = Math.max(0, Math.min(screenWidth - barWidth, start.x + dx));
+        const newY = Math.max(0, Math.min(screenHeight - BAR_APPROX_HEIGHT, start.y + dy));
+        setPosition({ x: newX, y: newY });
+      },
+      onPanResponderRelease: () => {
+        dragStartPosition.current = positionRef.current;
+        setTimeout(() => {
+          isDraggingBarRef.current = false;
+        }, 150);
+      },
+    })
+  ).current;
+
+  const containerStyle = hasUserMovedBar
+    ? { left: position.x, top: position.y, width: barWidth, paddingBottom: 16 }
+    : {
+        bottom: MARGIN + Math.max(insets.bottom, 0),
+        left: MARGIN,
+        right: MARGIN,
+        width: undefined,
+        paddingBottom: 16,
+      };
 
   return (
     <LinearGradient
-      colors={['rgba(63, 95, 232, 0.95)', 'rgba(91, 127, 255, 0.95)']}
+      colors={['rgba(63, 95, 232, 0.98)', 'rgba(91, 127, 255, 0.98)']}
       start={{ x: 0, y: 0 }}
       end={{ x: 0, y: 1 }}
-      style={[styles.container, { paddingBottom: Math.max(insets.bottom, 16) }]}
+      style={[styles.container, containerStyle]}
       onStartShouldSetResponder={() => true}
       onResponderTerminationRequest={() => false}
       onTouchStart={(e) => {
-        // Empêcher la propagation pour que la barre ne se cache pas quand on clique dessus
         e.stopPropagation();
       }}
       onTouchEnd={(e) => {
-        // Empêcher la propagation pour que la barre ne se cache pas quand on clique dessus
         e.stopPropagation();
       }}
     >
       <View style={styles.content}>
-        {/* Nom du récitateur */}
-        <View style={styles.reciterContainer}>
-          <Text style={styles.reciterText} allowFontScaling={false}>الشيخ سعود الشريم</Text>
-        </View>
+        {/* Zone déplaçable : toute la barre sauf la barre de progression (pour pouvoir déplacer en touchant n'importe où) */}
+        <View style={styles.draggableArea} {...moveBarPanResponder.panHandlers}>
+          <View style={styles.reciterContainer}>
+            <Ionicons name="reorder-three" size={20} color="rgba(255,255,255,0.7)" style={styles.dragHandleIcon} />
+            <Text style={styles.reciterText} allowFontScaling={false}>الشيخ سعود الشريم</Text>
+          </View>
         
-        {/* Boutons de contrôle */}
-        <View style={styles.controlsContainer}>
+          {/* Boutons de contrôle */}
+          <View style={styles.controlsContainer}>
           <TouchableOpacity
             onPress={onPlayPause}
             disabled={isLoading}
@@ -134,7 +196,10 @@ export const AudioProgressBar: React.FC<AudioProgressBarProps> = ({
           </TouchableOpacity>
           
           <TouchableOpacity
-            onPress={onStop}
+            onPress={() => {
+              if (isDraggingBarRef.current) return;
+              onStop();
+            }}
             disabled={isLoading}
             style={[styles.controlButton, isLoading && styles.controlButtonDisabled]}
             activeOpacity={0.7}
@@ -165,8 +230,9 @@ export const AudioProgressBar: React.FC<AudioProgressBarProps> = ({
             <Text style={styles.timeText} allowFontScaling={false}>{duration > 0 ? formatTime(duration) : '--:--'}</Text>
           </View>
         </View>
+        </View>
         
-        {/* Barre de progression */}
+        {/* Barre de progression (glisser horizontalement pour seek) */}
         <View
           ref={progressBarRef}
           style={styles.progressBarContainer}
@@ -174,7 +240,7 @@ export const AudioProgressBar: React.FC<AudioProgressBarProps> = ({
         >
           <View style={styles.progressBarBackground}>
             <LinearGradient
-              colors={['#5B7FFF', '#3F5FE8', '#2D4AC7']}
+              colors={['#5B7FFF', '#3F5FE8', '#3F5FE8']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={[
@@ -198,28 +264,34 @@ export const AudioProgressBar: React.FC<AudioProgressBarProps> = ({
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    width: '100%',
     paddingTop: 16,
     paddingHorizontal: 20,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.25)',
     zIndex: 1000,
-    elevation: 20,
+    elevation: 24,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.5,
-    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
   },
   content: {
     width: '100%',
   },
+  draggableArea: {
+    width: '100%',
+    paddingVertical: 4,
+  },
   reciterContainer: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 8,
+    paddingVertical: 4,
+  },
+  dragHandleIcon: {
+    marginRight: 8,
   },
   reciterText: {
     fontSize: 14,
@@ -250,8 +322,8 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   controlButtonActive: {
-    backgroundColor: 'rgba(255, 215, 0, 0.3)',
-    borderColor: 'rgba(255, 215, 0, 0.5)',
+    backgroundColor: 'rgba(255, 215, 0, 0.5)',
+    borderColor: '#FFD700',
   },
   timeContainer: {
     flexDirection: 'row',

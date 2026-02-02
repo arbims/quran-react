@@ -36,7 +36,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   return (
     <LinearGradient
-      colors={['#5B7FFF', '#3F5FE8', '#2D4AC7']} // Dégradé bleu (inversé : clair → foncé)
+      colors={['#3F5FE8', '#5B7FFF', '#3F5FE8']} // Dégradé bleu
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={[styles.navbar, { 
