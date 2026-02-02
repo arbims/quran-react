@@ -4,15 +4,15 @@ import * as NavigationBar from 'expo-navigation-bar';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-    Alert,
-    Animated,
-    FlatList,
-    I18nManager,
-    Pressable,
-    StatusBar,
-    StyleSheet,
-    useWindowDimensions,
-    View
+  Alert,
+  Animated,
+  FlatList,
+  I18nManager,
+  Pressable,
+  StatusBar,
+  StyleSheet,
+  useWindowDimensions,
+  View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -28,7 +28,7 @@ import { HIFDH_KEY, LAST_READ_KEY, SIDEBAR_WIDTH, SIDEBAR_WIDTH_LANDSCAPE } from
 import { useAudioPlayer } from '@/lib/quran-reader/hooks/useAudioPlayer';
 import { useOrientation } from '@/lib/quran-reader/hooks/useOrientation';
 import { allQuranPages, findPageIndexForSurah, getCurrentSurah, getPageSide, reversedQuranPages } from '@/lib/quran-reader/utils';
-import { areAudioFilesExtracted, downloadAndExtractAudioZip, getAudioDownloadPreference, setAudioDownloadPreference, type AudioDownloadPreference } from '@/lib/quran-reader/utils/audioDownload';
+import { areAudioFilesExtracted, clearDownloadCacheForRetry, downloadAndExtractAudioZip, getAudioDownloadPreference, setAudioDownloadPreference } from '@/lib/quran-reader/utils/audioDownload';
 
 // Import des données depuis les modules refactorisés
 // Les modules ont été déplacés vers @/lib/quran-reader/ pour éviter qu'Expo Router les traite comme des routes
@@ -52,6 +52,7 @@ export default function QuranReaderScreen() {
   const slideAnim = useRef(new Animated.Value(initialSlideValue)).current;
   const [surahListVisible, setSurahListVisible] = useState(false);
   const [currentPageIndex, setCurrentPageIndex] = useState<number | null>(null);
+  const [menuVisible, setMenuVisible] = useState(false);
 
   // Mettre à jour la position de la sidebar quand on change d'orientation (menu fermé)
   useEffect(() => {
@@ -81,7 +82,6 @@ export default function QuranReaderScreen() {
   const [currentPage, setCurrentPage] = useState<number>(reversedQuranPages[finalStartIndex]?.number || 1);
   const [hifdhPage, setHifdhPage] = useState<number | null>(null);
   const [lastReadPage, setLastReadPage] = useState<number | null>(null);
-  const [menuVisible, setMenuVisible] = useState(false);
   const [pageInputVisible, setPageInputVisible] = useState(false);
   const [pageInputValue, setPageInputValue] = useState('');
   const [navbarVisible, setNavbarVisible] = useState(true);
@@ -96,6 +96,7 @@ export default function QuranReaderScreen() {
   const [pendingAudioPage, setPendingAudioPage] = useState<number | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
   const [audioFileMissingModalVisible, setAudioFileMissingModalVisible] = useState(false);
   const [missingAudioPage, setMissingAudioPage] = useState<number | null>(null);
   const downloadRequestPromiseRef = useRef<{
@@ -106,79 +107,61 @@ export default function QuranReaderScreen() {
   // Hook pour la lecture audio
   const { isPlaying: isAudioPlaying, isLoading: isAudioLoading, error: audioError, play: playAudio, pause: pauseAudio, stop: stopAudio, seek: seekAudio, currentPage: audioCurrentPage, currentTime: audioCurrentTime, duration: audioDuration, isLooping: isAudioLooping, toggleLoop: toggleAudioLoop } = useAudioPlayer();
 
-  // Fonction pour gérer la demande de téléchargement
+  // Fonction pour gérer la demande de téléchargement : afficher la modale quand l'utilisateur clique sur play et les fichiers sont absents
   const handleDownloadRequest = async (pageNumber: number): Promise<boolean> => {
-    // Vérifier si les fichiers audio sont déjà extraits du ZIP
     const filesExtracted = await areAudioFilesExtracted();
     if (filesExtracted) {
-      // Si les fichiers sont déjà extraits, pas besoin de télécharger
       return true;
     }
 
-    // Vérifier les préférences de l'utilisateur
     const preference = await getAudioDownloadPreference();
-    
-    if (preference === 'always') {
-      // Toujours télécharger sans demander
-      return true;
-    } else if (preference === 'never') {
-      // Ne jamais télécharger - pas possible avec le ZIP, donc retourner false
+    if (preference === 'never') {
       return false;
-    } else {
-      // Préférence 'ask': afficher la modal et attendre la réponse de l'utilisateur
-      return new Promise<boolean>((resolve) => {
-        setPendingAudioPage(pageNumber);
-        downloadRequestPromiseRef.current = { resolve, reject: () => resolve(false) };
-        setAudioDownloadModalVisible(true);
+    }
+
+    // Toujours afficher la modale quand l'utilisateur clique sur play et les MP3 ne sont pas là (ask ou always)
+    return new Promise<boolean>((resolve) => {
+      setPendingAudioPage(pageNumber);
+      downloadRequestPromiseRef.current = { resolve, reject: () => resolve(false) };
+      setAudioDownloadModalVisible(true);
+    });
+  };
+
+  // Exécuter le téléchargement (utilisé par confirm et retry)
+  const runDownload = async () => {
+    if (!downloadRequestPromiseRef.current) return;
+    setIsDownloading(true);
+    setDownloadProgress(0);
+    setDownloadError(null);
+    try {
+      await downloadAndExtractAudioZip((progress) => {
+        setDownloadProgress(progress);
       });
+      setDownloadProgress(1);
+      setIsDownloading(false);
+      downloadRequestPromiseRef.current.resolve(true);
+      setTimeout(() => {
+        downloadRequestPromiseRef.current = null;
+        setPendingAudioPage(null);
+        setAudioDownloadModalVisible(false);
+        setDownloadProgress(0);
+      }, 500);
+    } catch (error: any) {
+      console.error('❌ Erreur lors du téléchargement:', error);
+      setIsDownloading(false);
+      setDownloadProgress(0);
+      setDownloadError(error?.message || 'فشل التحميل أو الملف تالف');
     }
   };
 
   // Gérer la confirmation de téléchargement depuis la modal
-  const handleDownloadConfirm = async (preference: AudioDownloadPreference, downloadNow: boolean) => {
+  const handleDownloadConfirm = async (downloadNow: boolean) => {
     if (downloadRequestPromiseRef.current && pendingAudioPage !== null) {
-      await setAudioDownloadPreference(preference);
-      
-      // Si l'utilisateur veut télécharger maintenant, télécharger avec progression
       if (downloadNow) {
-        setIsDownloading(true);
-        setDownloadProgress(0);
-        
-        try {
-          // Télécharger et extraire le ZIP (une seule fois pour tous les fichiers)
-          await downloadAndExtractAudioZip((progress) => {
-            setDownloadProgress(progress);
-          });
-          
-          // Téléchargement réussi
-          setDownloadProgress(1);
-          setIsDownloading(false);
-          
-          // Résoudre la promesse
-          downloadRequestPromiseRef.current.resolve(true);
-          
-          // Nettoyer et fermer après un court délai pour afficher 100%
-          setTimeout(() => {
-            downloadRequestPromiseRef.current = null;
-            setPendingAudioPage(null);
-            setAudioDownloadModalVisible(false);
-            setDownloadProgress(0);
-          }, 500);
-        } catch (error: any) {
-          console.error('❌ Erreur lors du téléchargement:', error);
-          setIsDownloading(false);
-          setDownloadProgress(0);
-          
-          // Même en cas d'erreur, résoudre avec false pour permettre le streaming
-          downloadRequestPromiseRef.current.resolve(false);
-          downloadRequestPromiseRef.current = null;
-          setPendingAudioPage(null);
-          setAudioDownloadModalVisible(false);
-          
-          Alert.alert('خطأ', 'فشل تحميل الملف الصوتي. سيتم استخدام البث المباشر.');
-        }
+        await setAudioDownloadPreference('always');
+        await runDownload();
       } else {
-        // Pas de téléchargement, utiliser le streaming
+        await setAudioDownloadPreference('never');
         downloadRequestPromiseRef.current.resolve(false);
         downloadRequestPromiseRef.current = null;
         setPendingAudioPage(null);
@@ -187,10 +170,15 @@ export default function QuranReaderScreen() {
     }
   };
 
+  // Réessayer le téléchargement après échec ou fichier corrompu
+  const handleDownloadRetry = async () => {
+    await clearDownloadCacheForRetry();
+    await runDownload();
+  };
+
   // Gérer l'annulation de téléchargement
   const handleDownloadCancel = () => {
     if (downloadRequestPromiseRef.current) {
-      // L'utilisateur annule, utiliser le streaming (pas de téléchargement)
       downloadRequestPromiseRef.current.resolve(false);
       downloadRequestPromiseRef.current = null;
     }
@@ -198,6 +186,7 @@ export default function QuranReaderScreen() {
     setAudioDownloadModalVisible(false);
     setIsDownloading(false);
     setDownloadProgress(0);
+    setDownloadError(null);
   };
 
   // Wrapper pour playAudio qui gère la demande de téléchargement
@@ -254,6 +243,17 @@ export default function QuranReaderScreen() {
   useEffect(() => {
     console.log(`Page ${currentPage} est à ${pageSide === 'left' ? 'gauche' : 'droite'}`);
   }, [currentPage, pageSide]);
+
+  // Quand l'utilisateur change de page (swipe ou saut) pendant que l'audio joue, basculer sur l'audio de la nouvelle page
+  useEffect(() => {
+    if (
+      isAudioPlaying &&
+      audioCurrentPage != null &&
+      currentPage !== audioCurrentPage
+    ) {
+      handlePlayAudio(currentPage);
+    }
+  }, [currentPage]);
 
   useEffect(() => {
     loadStorage();
@@ -449,7 +449,6 @@ export default function QuranReaderScreen() {
           style={{ 
             flex: 1,
             marginTop: navbarVisible ? (isLandscape ? Math.max(insets.top, 8) + 40 + 4 : insets.top + 48) : (isLandscape ? Math.max(insets.top, 8) : insets.top),
-            marginBottom: audioProgressBarVisible && (isAudioPlaying || audioDuration > 0) ? 100 : 0,
             backgroundColor: PAGE_BACKGROUND_COLOR,
             direction: 'ltr' 
           }}
@@ -478,9 +477,7 @@ export default function QuranReaderScreen() {
           updateCellsBatchingPeriod={50}
           onScrollBeginDrag={() => {
             isScrollingRef.current = true;
-            if (audioProgressBarVisible && !isAudioPlaying && audioDuration > 0) {
-              setAudioProgressBarVisible(false);
-            }
+            // Ne plus masquer la barre audio au scroll : l'utilisateur peut la déplacer ; masquer uniquement avec Stop
           }}
           onScrollEndDrag={() => {
             setTimeout(() => { isScrollingRef.current = false; }, 100);
@@ -505,13 +502,7 @@ export default function QuranReaderScreen() {
               return;
             }
 
-            // Barre audio : tap pour masquer
-            if (audioProgressBarVisible && !isAudioPlaying && audioDuration > 0 && isTap) {
-              const progressBarHeight = 120;
-              if (e.nativeEvent.pageY < height - progressBarHeight) {
-                setAudioProgressBarVisible(false);
-              }
-            }
+            // Ne plus masquer la barre audio au tap : l'utilisateur peut la déplacer ; masquer avec Stop ou en scrollant
           }}
         />
 
@@ -543,11 +534,9 @@ export default function QuranReaderScreen() {
         audioError={audioError}
       />
       
-      {/* Barre de progression audio en bas de l'écran */}
-      {/* Afficher la barre seulement si audioProgressBarVisible est true (géré par le useEffect) */}
-      {/* Ne pas vérifier audioDuration/audioCurrentPage ici pour éviter les animations lors du stop */}
+      {/* Barre de progression audio flottante et déplaçable */}
       {audioProgressBarVisible && (
-        <View pointerEvents="box-none">
+        <View style={StyleSheet.absoluteFillObject} pointerEvents="box-none">
           <AudioProgressBar
             currentTime={audioCurrentTime}
             duration={audioDuration}
@@ -599,11 +588,13 @@ export default function QuranReaderScreen() {
         visible={audioDownloadModalVisible}
         isDownloading={isDownloading}
         downloadProgress={downloadProgress}
+        downloadError={downloadError}
         onClose={() => {
           setAudioDownloadModalVisible(false);
           handleDownloadCancel();
         }}
         onConfirm={handleDownloadConfirm}
+        onRetry={handleDownloadRetry}
         onCancel={handleDownloadCancel}
       />
 

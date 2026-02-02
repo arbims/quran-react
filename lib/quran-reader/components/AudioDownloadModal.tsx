@@ -3,14 +3,15 @@ import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import { ActivityIndicator, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { ARABIC_FONT } from '../constants';
-import { AudioDownloadPreference } from '../utils/audioDownload';
 
 interface AudioDownloadModalProps {
   visible: boolean;
   isDownloading?: boolean;
   downloadProgress?: number;
+  downloadError?: string | null;
   onClose: () => void;
-  onConfirm: (preference: AudioDownloadPreference, downloadNow: boolean) => void;
+  onConfirm: (downloadNow: boolean) => void;
+  onRetry?: () => void;
   onCancel: () => void;
 }
 
@@ -18,23 +19,14 @@ export const AudioDownloadModal: React.FC<AudioDownloadModalProps> = ({
   visible,
   isDownloading = false,
   downloadProgress = 0,
+  downloadError = null,
   onClose,
   onConfirm,
+  onRetry,
   onCancel,
 }) => {
   const handleDownload = () => {
-    // Télécharger maintenant seulement, mais garder la préférence 'ask' pour la prochaine fois
-    onConfirm('ask', true);
-  };
-
-  const handleDownloadAlways = () => {
-    // Toujours télécharger automatiquement
-    onConfirm('always', true);
-  };
-
-  const handleNever = () => {
-    // Ne jamais télécharger, utiliser le streaming
-    onConfirm('never', false);
+    onConfirm(true);
   };
 
   const handleCancel = () => {
@@ -79,7 +71,7 @@ export const AudioDownloadModal: React.FC<AudioDownloadModalProps> = ({
                 </>
               )}
               
-              {isDownloading && (
+              {isDownloading && !downloadError && (
                 <View style={styles.progressContainer}>
                   <View style={styles.progressBarContainer}>
                     <View style={[styles.progressBar, { width: `${progressPercentage}%` }]} />
@@ -88,35 +80,45 @@ export const AudioDownloadModal: React.FC<AudioDownloadModalProps> = ({
                   <ActivityIndicator size="small" color="#44572C" style={styles.loader} />
                 </View>
               )}
+
+              {downloadError && (
+                <View style={styles.errorContainer}>
+                  <Ionicons name="warning" size={32} color="#FFC107" />
+                  <Text style={styles.errorText} allowFontScaling={false}>
+                    فشل التحميل أو الملف تالف. جرب مرة أخرى.
+                  </Text>
+                  <View style={styles.errorButtons}>
+                    {onRetry && (
+                      <TouchableOpacity
+                        style={[styles.button, styles.retryButton]}
+                        onPress={onRetry}
+                        activeOpacity={0.7}
+                      >
+                        <Ionicons name="refresh" size={20} color="#FFFFFF" />
+                        <Text style={styles.buttonText} allowFontScaling={false}>إعادة المحاولة</Text>
+                      </TouchableOpacity>
+                    )}
+                    <TouchableOpacity
+                      style={[styles.button, styles.cancelButton]}
+                      onPress={handleCancel}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.cancelButtonText} allowFontScaling={false}>إلغاء</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
             </View>
 
-            {!isDownloading && (
+            {!isDownloading && !downloadError && (
             <View style={styles.modalButtons}>
               <TouchableOpacity
                 style={[styles.button, styles.downloadButton]}
-                onPress={handleDownloadAlways}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="cloud-download" size={20} color="#FFFFFF" />
-                <Text style={styles.buttonText}>تحميل دائماً</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.button, styles.downloadOnceButton]}
                 onPress={handleDownload}
                 activeOpacity={0.7}
               >
-                <Ionicons name="download-outline" size={20} color="#FFFFFF" />
-                <Text style={styles.buttonText} allowFontScaling={false}>تحميل الآن فقط</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.button, styles.neverButton]}
-                onPress={handleNever}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="close-circle-outline" size={20} color="#FFFFFF" />
-                <Text style={styles.buttonText}>لا، شكراً</Text>
+                <Ionicons name="cloud-download" size={20} color="#FFFFFF" />
+                <Text style={styles.buttonText} allowFontScaling={false}>تحميل</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -201,9 +203,10 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(76, 175, 80, 0.3)',
     borderColor: '#44572C',
   },
-  downloadOnceButton: {
-    backgroundColor: 'rgba(33, 150, 243, 0.3)',
-    borderColor: '#44572C',
+  retryButton: {
+    backgroundColor: 'rgba(255, 152, 0, 0.4)',
+    borderColor: '#FFC107',
+    marginTop: 12,
   },
   neverButton: {
     backgroundColor: 'rgba(158, 158, 158, 0.3)',
@@ -252,6 +255,24 @@ const styles = StyleSheet.create({
   },
   loader: {
     marginTop: 8,
+  },
+  errorContainer: {
+    alignItems: 'center',
+    marginTop: 16,
+    paddingHorizontal: 16,
+  },
+  errorText: {
+    fontSize: 14,
+    color: '#FFC107',
+    textAlign: 'center',
+    marginTop: 8,
+    fontFamily: ARABIC_FONT,
+    lineHeight: 20,
+  },
+  errorButtons: {
+    marginTop: 12,
+    gap: 8,
+    width: '100%',
   },
 });
 

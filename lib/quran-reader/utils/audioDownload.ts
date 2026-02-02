@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system/legacy';
 import { Platform } from 'react-native';
-import { AUDIO_DOWNLOAD_PREFERENCE_KEY, AUDIO_ZIP_FILENAME, AUDIO_ZIP_DOWNLOAD_URL } from '../constants';
+import { AUDIO_DOWNLOAD_PREFERENCE_KEY, AUDIO_ZIP_DOWNLOAD_URL, AUDIO_ZIP_FILENAME } from '../constants';
 
 /**
  * Import dynamique de react-native-zip-archive pour éviter l'erreur NativeEventEmitter
@@ -141,10 +141,38 @@ export const clearAudioCache = async (): Promise<void> => {
 };
 
 /**
+ * Vide le cache (ZIP + fichiers extraits) pour permettre un nouveau téléchargement
+ * en cas d'échec ou de fichier corrompu.
+ */
+export const clearDownloadCacheForRetry = async (): Promise<void> => {
+  try {
+    await clearAudioCache();
+    const zipUri = getCachedZipUri();
+    const markerUri = getZipCompleteMarkerUri();
+    const zipInfo = await FileSystem.getInfoAsync(zipUri);
+    if (zipInfo.exists) {
+      await FileSystem.deleteAsync(zipUri, { idempotent: true });
+      console.log('🗑️ Fichier ZIP supprimé pour nouvelle tentative');
+    }
+    const markerInfo = await FileSystem.getInfoAsync(markerUri);
+    if (markerInfo.exists) {
+      await FileSystem.deleteAsync(markerUri, { idempotent: true });
+    }
+  } catch (error) {
+    console.error('❌ Erreur lors du nettoyage du cache pour retry:', error);
+  }
+};
+
+/**
  * Récupère l'URI du fichier ZIP en cache
  */
 export const getCachedZipUri = (): string => {
   return `${FileSystem.cacheDirectory}${AUDIO_ZIP_FILENAME}`;
+};
+
+/** URI du fichier marqueur : présent seulement si le ZIP a été téléchargé en entier (évite d'utiliser un ZIP partiel après crash) */
+const getZipCompleteMarkerUri = (): string => {
+  return `${getCachedZipUri()}.complete`;
 };
 
 /**
@@ -162,25 +190,32 @@ export const getZipDownloadUrl = (): string => {
 };
 
 /**
- * Vérifie si le fichier ZIP est déjà téléchargé et valide
+ * Vérifie si le fichier ZIP est déjà téléchargé en entier et valide.
+ * On exige aussi un fichier marqueur (.complete) pour ne pas réutiliser un ZIP partiel
+ * laissé après une fermeture d'app en plein téléchargement (évite le crash à l'extraction).
  */
 export const isZipCached = async (): Promise<boolean> => {
   try {
     const zipUri = getCachedZipUri();
+    const markerUri = getZipCompleteMarkerUri();
     const fileInfo = await FileSystem.getInfoAsync(zipUri);
+    const markerInfo = await FileSystem.getInfoAsync(markerUri);
     
-    // Vérifier que le fichier existe et n'est pas vide
     if (!fileInfo.exists || fileInfo.isDirectory) {
       return false;
     }
-    
-    // Vérifier que le fichier a une taille valide (au moins 1 KB)
     if (!fileInfo.size || fileInfo.size < 1024) {
       console.warn('⚠️ Le fichier ZIP en cache est invalide (trop petit), suppression...');
       await FileSystem.deleteAsync(zipUri, { idempotent: true });
+      await FileSystem.deleteAsync(markerUri, { idempotent: true });
       return false;
     }
-    
+    // ZIP partiel (app fermée en plein téléchargement) = pas de marqueur → supprimer et retélécharger
+    if (!markerInfo.exists || markerInfo.isDirectory) {
+      console.warn('⚠️ Fichier ZIP sans marqueur (téléchargement interrompu?), suppression pour retéléchargement.');
+      await FileSystem.deleteAsync(zipUri, { idempotent: true });
+      return false;
+    }
     return true;
   } catch (error) {
     console.error('❌ Erreur lors de la vérification du cache ZIP:', error);
@@ -435,24 +470,36 @@ export const downloadAndExtractAudioZip = async (
       // Télécharger le ZIP
       console.log('📥 Téléchargement du fichier ZIP...');
       await downloadAudioZip((progress) => {
-        // Convertir la progression du téléchargement (0-0.8) + extraction (0.8-1.0)
         if (onProgress) {
-          onProgress(progress * 0.8); // 80% pour le téléchargement
+          onProgress(progress * 0.8);
         }
       });
+      // Marquer le ZIP comme téléchargé en entier (évite de réutiliser un ZIP partiel après crash)
+      try {
+        await FileSystem.writeAsStringAsync(getZipCompleteMarkerUri(), '1');
+      } catch (markerErr) {
+        console.warn('⚠️ Impossible d\'écrire le marqueur ZIP:', markerErr);
+      }
     } else {
       console.log('✅ Le fichier ZIP est déjà téléchargé');
       if (onProgress) {
-        onProgress(0.8); // 80% pour le téléchargement (déjà fait)
+        onProgress(0.8);
       }
     }
     
     // Décompresser le ZIP
     console.log('📦 Décompression du fichier ZIP...');
-    await extractAudioZip();
+    try {
+      await extractAudioZip();
+    } catch (extractError: any) {
+      // ZIP corrompu ou extraction échouée → supprimer pour forcer un nouveau téléchargement
+      console.error('❌ Échec extraction ZIP, nettoyage du cache:', extractError);
+      await clearDownloadCacheForRetry();
+      throw extractError;
+    }
     
     if (onProgress) {
-      onProgress(1.0); // 100% terminé
+      onProgress(1.0);
     }
     
     console.log('✅ Fichiers audio téléchargés et extraits avec succès');
