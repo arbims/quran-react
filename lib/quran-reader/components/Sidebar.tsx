@@ -24,6 +24,8 @@ interface SidebarProps {
   onSetCurrentPageIndex: (index: number) => void;
   onToggleMenu: () => void;
   onPlayAudio: (page: number) => void;
+  onPlayAudioRange: (startPage: number, endPage: number) => void;
+  onOpenAudioRangeModal: () => void;
   onPauseAudio: () => void;
   onStopAudio: () => void;
   isAudioPlaying: boolean;
@@ -51,6 +53,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSetCurrentPageIndex,
   onToggleMenu,
   onPlayAudio,
+  onPlayAudioRange,
+  onOpenAudioRangeModal,
   onPauseAudio,
   onStopAudio,
   isAudioPlaying,
@@ -140,7 +144,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               if (isAudioPlaying) {
                 onPauseAudio();
               } else {
-                onPlayAudio(currentPage);
+                onOpenAudioRangeModal();
               }
             }} 
             activeOpacity={0.7}
