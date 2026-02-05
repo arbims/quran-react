@@ -21,6 +21,8 @@ interface AudioProgressBarProps {
   duration: number;
   isPlaying: boolean;
   isLoading: boolean;
+  /** Nom de la sourate courante en arabe (affichée au-dessus des contrôles) */
+  currentSurahName?: string;
   onSeek: (time: number) => void;
   onPlayPause: () => void;
   onStop: () => void;
@@ -43,6 +45,7 @@ export const AudioProgressBar: React.FC<AudioProgressBarProps> = ({
   duration,
   isPlaying,
   isLoading,
+  currentSurahName,
   onSeek,
   onPlayPause,
   onStop,
@@ -175,9 +178,16 @@ export const AudioProgressBar: React.FC<AudioProgressBarProps> = ({
       <View style={styles.content}>
         {/* Zone déplaçable : toute la barre sauf la barre de progression (pour pouvoir déplacer en touchant n'importe où) */}
         <View style={styles.draggableArea} {...moveBarPanResponder.panHandlers}>
-          <View style={styles.reciterContainer}>
-            <Ionicons name="reorder-three" size={20} color="rgba(255,255,255,0.7)" style={styles.dragHandleIcon} />
-            <Text style={styles.reciterText} allowFontScaling={false}>الشيخ سعود الشريم</Text>
+          <View style={styles.headerRow}>
+            <View style={styles.reciterContainer}>
+              <Ionicons name="reorder-three" size={20} color="rgba(255,255,255,0.7)" style={styles.dragHandleIcon} />
+              <Text style={styles.reciterText} allowFontScaling={false}>الشيخ سعود الشريم</Text>
+            </View>
+            {currentSurahName ? (
+              <View style={styles.surahNameContainer}>
+                <Text style={styles.surahLabel} allowFontScaling={false}>سورة {currentSurahName}</Text>
+              </View>
+            ) : null}
           </View>
         
           {/* Boutons de contrôle */}
@@ -283,11 +293,17 @@ const styles = StyleSheet.create({
     width: '100%',
     paddingVertical: 4,
   },
+  headerRow: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
   reciterContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
+    justifyContent: 'flex-start',
     paddingVertical: 4,
   },
   dragHandleIcon: {
@@ -299,7 +315,26 @@ const styles = StyleSheet.create({
     opacity: 0.9,
     fontFamily: ARABIC_FONT,
     fontWeight: '500',
-    textAlign: 'center',
+    textAlign: 'left',
+  },
+  surahNameContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: 12,
+    maxWidth: '55%',
+    justifyContent: 'flex-end',
+  },
+  surahLabel: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.8)',
+    fontFamily: ARABIC_FONT,
+    marginLeft: 4,
+  },
+  surahName: {
+    fontSize: 16,
+    color: '#FFFFFF',
+    fontFamily: ARABIC_FONT,
+    fontWeight: '700',
   },
   controlsContainer: {
     flexDirection: 'row',

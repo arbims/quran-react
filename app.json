@@ -33,7 +33,14 @@
         "WAKE_LOCK",
         "android.permission.RECORD_AUDIO",
         "android.permission.MODIFY_AUDIO_SETTINGS"
-      ]
+      ],
+      "gradleProperties": {
+        "org.gradle.jvmargs": "-Xmx2048m -XX:MaxMetaspaceSize=512m -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8",
+        "org.gradle.parallel": "true",
+        "org.gradle.caching": "true",
+        "org.gradle.daemon": "true",
+        "org.gradle.configureondemand": "true"
+      }
     },
     "web": {
       "output": "static",
@@ -71,9 +78,6 @@
         "projectId": "764ce668-0e60-4016-89e0-8129e953af60"
       }
     },
-    "owner": "elarbims",
-    "ios": {
-      "bundleIdentifier": "com.quran.hafs"
-    }
+    "owner": "elarbims"
   }
 }

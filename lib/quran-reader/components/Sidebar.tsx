@@ -24,6 +24,7 @@ interface SidebarProps {
   onSetCurrentPageIndex: (index: number) => void;
   onToggleMenu: () => void;
   onPlayAudio: (page: number) => void;
+  onPlaySurah: (surahId: number) => void;
   onPauseAudio: () => void;
   onStopAudio: () => void;
   isAudioPlaying: boolean;
@@ -51,6 +52,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSetCurrentPageIndex,
   onToggleMenu,
   onPlayAudio,
+  onPlaySurah,
   onPauseAudio,
   onStopAudio,
   isAudioPlaying,
@@ -134,30 +136,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <Ionicons name="list" size={22} color="#FFFFFF" style={styles.menuIcon} />
             </View>
           </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.menuItem, isAudioLoading && !isAudioPlaying && styles.menuItemDisabled]} 
-            onPress={() => {
-              if (isAudioPlaying) {
-                onPauseAudio();
-              } else {
-                onPlayAudio(currentPage);
-              }
-            }} 
-            activeOpacity={0.7}
-            disabled={isAudioLoading && !isAudioPlaying}
-          >
-            <View style={[styles.menuItemContent, { flexShrink: 0 }]}>
-              <Text style={[styles.menuItemText, { fontSize: menuFontSize }]} allowFontScaling={false} numberOfLines={1}>
-                {isAudioLoading ? 'جاري التحميل...' : audioError ? 'إعادة المحاولة' : isAudioPlaying ? 'إيقاف مؤقت' : 'تشغيل الصوت'}
-              </Text>
-              <Ionicons 
-                name={isAudioPlaying ? 'pause' : 'play'} 
-                size={22} 
-                color={isAudioLoading && !audioError ? "#888888" : "#FFFFFF"} 
-                style={styles.menuIcon} 
-              />
-            </View>
-          </TouchableOpacity>
           {audioError && (
             <View style={styles.errorContainer}>
               <Text style={[styles.errorText, { fontSize: menuFontSize }]} allowFontScaling={false}>{audioError}</Text>
@@ -197,33 +175,53 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <FlatList
             data={require('@/data/surahs').surahs}
             keyExtractor={(item) => item.id.toString()}
-            renderItem={({ item }) => (
-              <TouchableOpacity
-                style={styles.surahListItem}
-                onPress={() => {
-                  const surahIndex = findPageIndexForSurah(item.id);
-                  if (surahIndex !== -1) {
-                    const targetPage = reversedQuranPages[surahIndex]?.number;
-                    if (targetPage) {
-                      onSetCurrentPage(targetPage);
-                      onSetCurrentPageIndex(surahIndex);
-                    }
-                    
-                    onSetSurahListVisible(false);
-                    onToggleMenu();
-                    
-                    setTimeout(() => {
-                      flatListRef.current?.scrollToIndex({ 
-                        index: surahIndex, 
-                        animated: true 
-                      });
-                    }, 300);
+            renderItem={({ item }) => {
+              const handleGoToSurah = () => {
+                const surahIndex = findPageIndexForSurah(item.id);
+                if (surahIndex !== -1) {
+                  const targetPage = reversedQuranPages[surahIndex]?.number;
+                  if (targetPage) {
+                    onSetCurrentPage(targetPage);
+                    onSetCurrentPageIndex(surahIndex);
                   }
-                }}
-              >
-                <Text style={[styles.surahListItemText, { fontSize: Math.round(18 * fontScale) }]} allowFontScaling={false} numberOfLines={1}>{item.id}. {item.name_ar}</Text>
-              </TouchableOpacity>
-            )}
+                  
+                  onSetSurahListVisible(false);
+                  onToggleMenu();
+                  
+                  setTimeout(() => {
+                    flatListRef.current?.scrollToIndex({ 
+                      index: surahIndex, 
+                      animated: true 
+                    });
+                  }, 300);
+                }
+              };
+
+              return (
+                <View style={styles.surahListItem}>
+                  <TouchableOpacity
+                    style={styles.surahListItemTextWrapper}
+                    onPress={handleGoToSurah}
+                    activeOpacity={0.7}
+                  >
+                    <Text
+                      style={[styles.surahListItemText, { fontSize: Math.round(18 * fontScale) }]}
+                      allowFontScaling={false}
+                      numberOfLines={1}
+                    >
+                      {item.id}. {item.name_ar}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.surahPlayButton}
+                    onPress={() => onPlaySurah(item.id)}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="play-circle" size={22} color="#FFFFFF" />
+                  </TouchableOpacity>
+                </View>
+              );
+            }}
             style={styles.surahList}
             nestedScrollEnabled={true}
             scrollEnabled={true}
@@ -337,6 +335,9 @@ const styles = StyleSheet.create({
   },
   surahList: { flex: 1 },
   surahListItem: { 
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
     paddingVertical: 10, 
     paddingBottom: 13,
     paddingHorizontal: 12, 
@@ -344,6 +345,11 @@ const styles = StyleSheet.create({
     borderBottomColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 8,
     marginVertical: 2,
+  },
+  surahListItemTextWrapper: {
+    flex: 1,
+    marginRight: 12,
+    alignItems: 'flex-end',
   },
   surahListItemText: { 
     fontSize: 18, 
@@ -353,6 +359,16 @@ const styles = StyleSheet.create({
     textAlign: 'right', 
     marginRight: 0,
     fontFamily: ARABIC_FONT,
+  },
+  surahPlayButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.16)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.35)',
   },
   surahListItemSubtext: { 
     fontSize: 14, 

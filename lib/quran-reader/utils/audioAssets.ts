@@ -12,12 +12,13 @@ const audioAssets: Record<string, any> = {
   // Mapping vide - les fichiers audio sont téléchargés depuis Dropbox
 };
 
-export const getAudioAsset = (pageNumber: number): any | null => {
-  const formattedPage = pageNumber.toString().padStart(3, '0');
-  return audioAssets[formattedPage] || null;
+/** Numéro de sourate 1-114 → 001.mp3 ... 114.mp3 */
+export const getAudioAsset = (surahNumber: number): any | null => {
+  const formatted = surahNumber.toString().padStart(3, '0');
+  return audioAssets[formatted] || null;
 };
 
-export const hasAudioAsset = (pageNumber: number): boolean => {
-  const formattedPage = pageNumber.toString().padStart(3, '0');
-  return formattedPage in audioAssets && audioAssets[formattedPage] !== undefined;
+export const hasAudioAsset = (surahNumber: number): boolean => {
+  const formatted = surahNumber.toString().padStart(3, '0');
+  return formatted in audioAssets && audioAssets[formatted] !== undefined;
 };

@@ -84,6 +84,7 @@ export default function QuranReaderScreen() {
   const [lastReadPage, setLastReadPage] = useState<number | null>(null);
   const [pageInputVisible, setPageInputVisible] = useState(false);
   const [pageInputValue, setPageInputValue] = useState('');
+  // Modal de sélection de sourate supprimé : la lecture par sourate se fait directement depuis la liste des sourates
   const [navbarVisible, setNavbarVisible] = useState(true);
   const [audioProgressBarVisible, setAudioProgressBarVisible] = useState(false); // Cachée par défaut
   const isStoppingRef = useRef(false); // Flag pour éviter les animations lors du stop
@@ -93,22 +94,27 @@ export default function QuranReaderScreen() {
   const touchStartYRef = useRef<number>(0); // Position Y du début du touch
   const isScrollingRef = useRef<boolean>(false); // True pendant un swipe horizontal
   const [audioDownloadModalVisible, setAudioDownloadModalVisible] = useState(false);
-  const [pendingAudioPage, setPendingAudioPage] = useState<number | null>(null);
+  const [pendingAudioSurah, setPendingAudioSurah] = useState<number | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const [audioFileMissingModalVisible, setAudioFileMissingModalVisible] = useState(false);
-  const [missingAudioPage, setMissingAudioPage] = useState<number | null>(null);
+  const [missingAudioSurah, setMissingAudioSurah] = useState<number | null>(null);
   const downloadRequestPromiseRef = useRef<{
     resolve: (value: boolean) => void;
     reject: (error: any) => void;
   } | null>(null);
+  /** Plage de sourates en lecture (1-114). Le swipe ne change pas la piste. */
+  const [audioRange, setAudioRange] = useState<{
+    start: number;
+    end: number;
+  } | null>(null);
 
   // Hook pour la lecture audio
-  const { isPlaying: isAudioPlaying, isLoading: isAudioLoading, error: audioError, play: playAudio, pause: pauseAudio, stop: stopAudio, seek: seekAudio, currentPage: audioCurrentPage, currentTime: audioCurrentTime, duration: audioDuration, isLooping: isAudioLooping, toggleLoop: toggleAudioLoop } = useAudioPlayer();
+  const { isPlaying: isAudioPlaying, isLoading: isAudioLoading, error: audioError, play: playAudio, pause: pauseAudio, stop: stopAudio, seek: seekAudio, currentPage: audioCurrentPage, currentTime: audioCurrentTime, duration: audioDuration, isLooping: isAudioLooping, toggleLoop: toggleAudioLoop, setOnFinished: setAudioOnFinished } = useAudioPlayer();
 
   // Fonction pour gérer la demande de téléchargement : afficher la modale quand l'utilisateur clique sur play et les fichiers sont absents
-  const handleDownloadRequest = async (pageNumber: number): Promise<boolean> => {
+  const handleDownloadRequest = async (surahNumber: number): Promise<boolean> => {
     const filesExtracted = await areAudioFilesExtracted();
     if (filesExtracted) {
       return true;
@@ -119,9 +125,8 @@ export default function QuranReaderScreen() {
       return false;
     }
 
-    // Toujours afficher la modale quand l'utilisateur clique sur play et les MP3 ne sont pas là (ask ou always)
     return new Promise<boolean>((resolve) => {
-      setPendingAudioPage(pageNumber);
+      setPendingAudioSurah(surahNumber);
       downloadRequestPromiseRef.current = { resolve, reject: () => resolve(false) };
       setAudioDownloadModalVisible(true);
     });
@@ -142,7 +147,7 @@ export default function QuranReaderScreen() {
       downloadRequestPromiseRef.current.resolve(true);
       setTimeout(() => {
         downloadRequestPromiseRef.current = null;
-        setPendingAudioPage(null);
+        setPendingAudioSurah(null);
         setAudioDownloadModalVisible(false);
         setDownloadProgress(0);
       }, 500);
@@ -156,7 +161,7 @@ export default function QuranReaderScreen() {
 
   // Gérer la confirmation de téléchargement depuis la modal
   const handleDownloadConfirm = async (downloadNow: boolean) => {
-    if (downloadRequestPromiseRef.current && pendingAudioPage !== null) {
+    if (downloadRequestPromiseRef.current && pendingAudioSurah !== null) {
       if (downloadNow) {
         await setAudioDownloadPreference('always');
         await runDownload();
@@ -164,9 +169,9 @@ export default function QuranReaderScreen() {
         await setAudioDownloadPreference('never');
         downloadRequestPromiseRef.current.resolve(false);
         downloadRequestPromiseRef.current = null;
-        setPendingAudioPage(null);
-        setAudioDownloadModalVisible(false);
       }
+      setPendingAudioSurah(null);
+      setAudioDownloadModalVisible(false);
     }
   };
 
@@ -189,21 +194,60 @@ export default function QuranReaderScreen() {
     setDownloadError(null);
   };
 
-  // Wrapper pour playAudio qui gère la demande de téléchargement
-  const handlePlayAudio = async (pageNumber: number) => {
+  // Wrapper pour playAudio par numéro de sourate (1-114). Le swipe ne change pas la piste.
+  const handlePlayAudio = async (surahNumber: number) => {
     try {
-      await playAudio(pageNumber, handleDownloadRequest);
+      await playAudio(surahNumber, handleDownloadRequest);
     } catch (error: any) {
       const errorMessage = error.message || 'فشل تشغيل الملف الصوتي';
-      // Si c'est un message indiquant qu'il n'y a pas de fichier audio, afficher le modal
       if (errorMessage.includes('لا يوجد ملف صوتي')) {
-        setMissingAudioPage(pageNumber);
+        setMissingAudioSurah(surahNumber);
         setAudioFileMissingModalVisible(true);
       } else {
         console.error('❌ Erreur lors de la lecture audio:', error);
         Alert.alert('خطأ', errorMessage);
       }
     }
+  };
+
+  // Jouer une sourate (fichier 001.mp3 ... 114.mp3). Le swipe ne change pas la piste.
+  const handlePlaySurah = async (surahId: number) => {
+    try {
+      const surahs = require('@/data/surahs').surahs;
+      const surah = surahs.find((s: any) => s.id === surahId);
+      if (!surah) {
+        Alert.alert('خطأ', 'السورة غير موجودة');
+        return;
+      }
+      jumpToPageWithoutToggle(surah.startPage);
+      await handlePlayAudio(surahId);
+    } catch (error: any) {
+      const errorMessage = error.message || 'فشل تشغيل الملف الصوتي';
+      console.error('❌ Erreur lors de la lecture audio de sourate:', error);
+      Alert.alert('خطأ', errorMessage);
+    }
+  };
+
+  // Démarrer la lecture audio d'une plage de sourates (ex : sourate 1 à 5)
+  const handlePlayAudioRange = async (startSurahId: number, endSurahId: number) => {
+    if (
+      !Number.isFinite(startSurahId) ||
+      !Number.isFinite(endSurahId) ||
+      startSurahId < 1 ||
+      endSurahId < 1 ||
+      startSurahId > 114 ||
+      endSurahId > 114 ||
+      startSurahId > endSurahId
+    ) {
+      Alert.alert('خطأ', 'يرجى إدخال نطاق سور صحيح بين 1 و 114');
+      return;
+    }
+    const surahs = require('@/data/surahs').surahs;
+    const startSurah = surahs.find((s: any) => s.id === startSurahId);
+    if (!startSurah) return;
+    setAudioRange({ start: startSurahId, end: endSurahId });
+    jumpToPageWithoutToggle(startSurah.startPage);
+    await handlePlayAudio(startSurahId);
   };
 
   // Gérer la visibilité de la barre de progression (un seul useEffect pour éviter les animations)
@@ -244,16 +288,27 @@ export default function QuranReaderScreen() {
     console.log(`Page ${currentPage} est à ${pageSide === 'left' ? 'gauche' : 'droite'}`);
   }, [currentPage, pageSide]);
 
-  // Quand l'utilisateur change de page (swipe ou saut) pendant que l'audio joue, basculer sur l'audio de la nouvelle page
+  // L'audio continue de jouer même si l'utilisateur change de page
+  // (logique supprimée : on ne change plus l'audio automatiquement lors du changement de page)
+
+  // Enchaîner la sourate suivante quand une piste se termine, si un range de sourates est actif
   useEffect(() => {
-    if (
-      isAudioPlaying &&
-      audioCurrentPage != null &&
-      currentPage !== audioCurrentPage
-    ) {
-      handlePlayAudio(currentPage);
-    }
-  }, [currentPage]);
+    setAudioOnFinished((finishedSurah) => {
+      if (!audioRange || finishedSurah == null) return;
+      const { start, end } = audioRange;
+      if (finishedSurah < start || finishedSurah > end) return;
+      if (finishedSurah >= end) {
+        setAudioRange(null);
+        return;
+      }
+      const nextSurah = finishedSurah + 1;
+      setAudioRange({ start, end });
+      const surahs = require('@/data/surahs').surahs;
+      const next = surahs.find((s: any) => s.id === nextSurah);
+      if (next) jumpToPageWithoutToggle(next.startPage);
+      handlePlayAudio(nextSurah);
+    });
+  }, [audioRange, setAudioOnFinished]);
 
   useEffect(() => {
     loadStorage();
@@ -527,6 +582,7 @@ export default function QuranReaderScreen() {
         onSetCurrentPageIndex={setCurrentPageIndex}
         onToggleMenu={toggleMenu}
         onPlayAudio={handlePlayAudio}
+        onPlaySurah={handlePlaySurah}
         onPauseAudio={pauseAudio}
         onStopAudio={stopAudio}
         isAudioPlaying={isAudioPlaying}
@@ -542,11 +598,12 @@ export default function QuranReaderScreen() {
             duration={audioDuration}
             isPlaying={isAudioPlaying}
             isLoading={isAudioLoading}
+            currentSurahName={currentSurah?.name_ar || ''}
             onSeek={seekAudio}
             onPlayPause={isAudioPlaying ? pauseAudio : () => {
-              isStoppingRef.current = false; // Réinitialiser le flag si on relance
+              isStoppingRef.current = false;
               setAudioProgressBarVisible(true);
-              handlePlayAudio(audioCurrentPage || currentPage);
+              handlePlayAudio(audioCurrentPage ?? currentSurah?.id ?? 1);
             }}
             onStop={() => {
               // Activer le flag AVANT toute mise à jour pour empêcher le useEffect de réagir
@@ -601,12 +658,13 @@ export default function QuranReaderScreen() {
       {/* Modal pour afficher qu'il n'y a pas de fichier audio pour cette page */}
       <AudioFileMissingModal
         visible={audioFileMissingModalVisible}
-        pageNumber={missingAudioPage || 0}
+        pageNumber={missingAudioSurah ?? 0}
         onClose={() => {
           setAudioFileMissingModalVisible(false);
-          setMissingAudioPage(null);
+          setMissingAudioSurah(null);
         }}
       />
+
     </View>
   );
 }

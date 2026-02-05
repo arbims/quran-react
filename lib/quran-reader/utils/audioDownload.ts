@@ -42,12 +42,13 @@ export const setAudioDownloadPreference = async (preference: AudioDownloadPrefer
 };
 
 /**
- * Vérifie si un fichier audio est déjà téléchargé en cache
+ * Vérifie si un fichier audio est déjà téléchargé en cache.
+ * surahNumber: 1-114 → 001.mp3 ... 114.mp3
  */
-export const isAudioFileCached = async (pageNumber: number): Promise<boolean> => {
+export const isAudioFileCached = async (surahNumber: number): Promise<boolean> => {
   try {
-    const formattedPage = pageNumber.toString().padStart(3, '0');
-    const fileName = `${formattedPage}.mp3`;
+    const formatted = surahNumber.toString().padStart(3, '0');
+    const fileName = `${formatted}.mp3`;
     const fileUri = `${FileSystem.cacheDirectory}audio/${fileName}`;
     
     const fileInfo = await FileSystem.getInfoAsync(fileUri);
@@ -59,28 +60,28 @@ export const isAudioFileCached = async (pageNumber: number): Promise<boolean> =>
 };
 
 /**
- * Récupère l'URI du fichier audio en cache
+ * Récupère l'URI du fichier audio en cache (surah 1-114 → 001.mp3 ... 114.mp3).
  */
-export const getCachedAudioUri = (pageNumber: number): string => {
-  const formattedPage = pageNumber.toString().padStart(3, '0');
-  const fileName = `${formattedPage}.mp3`;
+export const getCachedAudioUri = (surahNumber: number): string => {
+  const formatted = surahNumber.toString().padStart(3, '0');
+  const fileName = `${formatted}.mp3`;
   return `${FileSystem.cacheDirectory}audio/${fileName}`;
 };
 
 export const downloadAudioFile = async (
-  pageNumber: number,
+  surahNumber: number,
   onProgress?: (progress: number) => void
 ): Promise<string> => {
   await downloadAndExtractAudioZip(onProgress);
-  return getCachedAudioUri(pageNumber);
+  return getCachedAudioUri(surahNumber);
 };
 
 /**
- * Supprime un fichier audio du cache
+ * Supprime un fichier audio du cache (surah 1-114).
  */
-export const deleteCachedAudioFile = async (pageNumber: number): Promise<void> => {
+export const deleteCachedAudioFile = async (surahNumber: number): Promise<void> => {
   try {
-    const localUri = getCachedAudioUri(pageNumber);
+    const localUri = getCachedAudioUri(surahNumber);
     const fileInfo = await FileSystem.getInfoAsync(localUri);
     
     if (fileInfo.exists) {

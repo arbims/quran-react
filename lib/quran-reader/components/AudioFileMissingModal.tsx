@@ -6,6 +6,7 @@ import { ARABIC_FONT } from '../constants';
 
 interface AudioFileMissingModalProps {
   visible: boolean;
+  /** Numéro de sourate (1-114) pour afficher 001.mp3 ... 114.mp3 */
   pageNumber: number;
   onClose: () => void;
 }
@@ -15,7 +16,7 @@ export const AudioFileMissingModal: React.FC<AudioFileMissingModalProps> = ({
   pageNumber,
   onClose,
 }) => {
-  const formattedPage = pageNumber.toString().padStart(3, '0');
+  const formatted = pageNumber.toString().padStart(3, '0');
 
   return (
     <Modal
@@ -36,10 +37,10 @@ export const AudioFileMissingModal: React.FC<AudioFileMissingModalProps> = ({
               <Ionicons name="information-circle-outline" size={48} color="#FFA500" />
               <Text style={styles.modalTitle} allowFontScaling={false}>معلومة</Text>
               <Text style={styles.modalMessage} allowFontScaling={false}>
-                لا يوجد ملف صوتي متاح لهذه الصفحة
+                لا يوجد ملف صوتي متاح لهذه السورة
               </Text>
               <Text style={styles.modalPageNumber} allowFontScaling={false}>
-                صفحة {pageNumber} ({formattedPage}.mp3)
+                السورة {pageNumber} ({formatted}.mp3)
               </Text>
             </View>
 

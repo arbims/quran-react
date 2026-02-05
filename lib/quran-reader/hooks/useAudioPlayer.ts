@@ -9,19 +9,27 @@ import {
   isAudioFileCached
 } from '../utils/audioDownload';
 
+/** Numéro de sourate (1-114). La piste audio suit le numéro : 001.mp3 ... 114.mp3 */
 interface UseAudioPlayerReturn {
   isPlaying: boolean;
   isLoading: boolean;
   error: string | null;
-  play: (pageNumber: number, onDownloadRequest?: (pageNumber: number) => Promise<boolean>) => Promise<void>;
+  /** Lance la lecture de la sourate (1-114). Le swipe ne change pas la piste. */
+  play: (surahNumber: number, onDownloadRequest?: (surahNumber: number) => Promise<boolean>) => Promise<void>;
   pause: () => Promise<void>;
   stop: () => Promise<void>;
   seek: (time: number) => Promise<void>;
+  /** Numéro de la sourate en cours (1-114), ou null si aucune lecture. */
   currentPage: number | null;
   currentTime: number;
   duration: number;
   isLooping: boolean;
   toggleLoop: () => void;
+  /**
+   * Enregistre un callback appelé quand la lecture d'une sourate se termine
+   * naturellement (fin de fichier audio, hors arrêt manuel).
+   */
+  setOnFinished: (callback: (surahNumber: number | null) => void) => void;
 }
 
 export const useAudioPlayer = (): UseAudioPlayerReturn => {
@@ -34,19 +42,18 @@ export const useAudioPlayer = (): UseAudioPlayerReturn => {
   const [isLooping, setIsLooping] = useState(false);
   
   const soundRef = useRef<ExpoAV.Sound | null>(null);
-  const onDownloadRequestRef = useRef<((pageNumber: number) => Promise<boolean>) | undefined>(undefined);
+  const onDownloadRequestRef = useRef<((surahNumber: number) => Promise<boolean>) | undefined>(undefined);
   const isLoopingRef = useRef(false);
   const currentPageRef = useRef<number | null>(null);
+  const onFinishedCallbackRef = useRef<((pageNumber: number | null) => void) | null>(null);
 
   // Configurer la lecture en arrière-plan au démarrage
   useEffect(() => {
     const configureAudioMode = async () => {
       try {
         await ExpoAV.setAudioModeAsync({
-          playsInSilentModeIOS: true,
           staysActiveInBackground: true,
           shouldDuckAndroid: false,
-          playThroughEarpieceAndroid: false,
         });
         console.log('✅ Mode audio configuré pour la lecture en arrière-plan avec contrôles système');
       } catch (err) {
@@ -56,7 +63,7 @@ export const useAudioPlayer = (): UseAudioPlayerReturn => {
     configureAudioMode();
   }, []);
 
-  // Synchroniser l'état quand l'app revient au premier plan
+  // Synchroniser l'état quand l'app revient au premier plan et écouter les actions système
   useEffect(() => {
     const subscription = AppState.addEventListener('change', async (nextAppState: AppStateStatus) => {
       if (nextAppState === 'active' && soundRef.current) {
@@ -73,10 +80,10 @@ export const useAudioPlayer = (): UseAudioPlayerReturn => {
               console.log('✅ Position synchronisée au retour au premier plan:', currentTimeValue.toFixed(2), 's');
             }
             
-            // Synchroniser l'état de lecture
+            // Synchroniser l'état de lecture (important pour les contrôles système)
             if (status.isPlaying !== undefined) {
               setIsPlaying(status.isPlaying);
-              console.log('✅ État de lecture synchronisé:', status.isPlaying ? 'play' : 'pause');
+              console.log('✅ État de lecture synchronisé avec les contrôles système:', status.isPlaying ? 'play' : 'pause');
             }
             
             // Synchroniser la durée
@@ -91,10 +98,30 @@ export const useAudioPlayer = (): UseAudioPlayerReturn => {
       }
     });
 
+    // Écouter les changements de statut en continu pour réagir aux actions système
+    // (les boutons de la notification déclenchent automatiquement playAsync/pauseAsync)
+    const intervalId = setInterval(async () => {
+      if (soundRef.current) {
+        try {
+          const status = await soundRef.current.getStatusAsync();
+          if (status.isLoaded) {
+            // Synchroniser l'état de lecture si changé par les contrôles système
+            if (status.isPlaying !== undefined && status.isPlaying !== isPlaying) {
+              setIsPlaying(status.isPlaying);
+              console.log('🔄 État de lecture mis à jour par les contrôles système:', status.isPlaying ? 'play' : 'pause');
+            }
+          }
+        } catch (err) {
+          // Ignorer les erreurs silencieusement
+        }
+      }
+    }, 1000); // Vérifier toutes les secondes
+
     return () => {
       subscription.remove();
+      clearInterval(intervalId);
     };
-  }, []);
+  }, [isPlaying]);
 
   // Configurer le listener de statut pour mettre à jour l'état en temps réel
   useEffect(() => {
@@ -128,9 +155,11 @@ export const useAudioPlayer = (): UseAudioPlayerReturn => {
         // Gérer la fin de lecture
         if (status.didJustFinish) {
           console.log('🏁 Audio terminé');
-          if (isLoopingRef.current && currentPageRef.current !== null) {
+          const finishedPage = currentPageRef.current;
+
+          if (isLoopingRef.current && finishedPage !== null) {
             // Relancer en boucle
-            console.log('🔁 Relance en boucle pour la page', currentPageRef.current);
+            console.log('🔁 Relance en boucle pour la page', finishedPage);
             setTimeout(async () => {
               try {
                 if (soundRef.current) {
@@ -149,6 +178,11 @@ export const useAudioPlayer = (): UseAudioPlayerReturn => {
             setIsLoading(false);
             setCurrentTime(0);
             setCurrentPage(null);
+
+            // Notifier l'éventuel callback externe
+            if (onFinishedCallbackRef.current) {
+              onFinishedCallbackRef.current(finishedPage ?? null);
+            }
           }
         }
       } else if (status.error) {
@@ -189,13 +223,17 @@ export const useAudioPlayer = (): UseAudioPlayerReturn => {
     currentPageRef.current = currentPage;
   }, [currentPage]);
 
-  const getAudioFileUri = async (pageNumber: number, onDownloadRequest?: (pageNumber: number) => Promise<boolean>): Promise<string> => {
-    const formattedPage = pageNumber.toString().padStart(3, '0');
+  /** surahNumber: 1-114 → 001.mp3 ... 114.mp3 */
+  const getAudioFileUri = async (surahNumber: number, onDownloadRequest?: (surahNumber: number) => Promise<boolean>): Promise<string> => {
+    if (surahNumber < 1 || surahNumber > 114) {
+      throw new Error(`رقم السورة غير صحيح (1-114): ${surahNumber}`);
+    }
+    const formatted = surahNumber.toString().padStart(3, '0');
     
     // Essayer d'abord avec expo-asset
-    if (hasAudioAsset(pageNumber)) {
+    if (hasAudioAsset(surahNumber)) {
       try {
-        const assetModule = getAudioAsset(pageNumber);
+        const assetModule = getAudioAsset(surahNumber);
         if (assetModule) {
           const asset = Asset.fromModule(assetModule);
           
@@ -218,16 +256,16 @@ export const useAudioPlayer = (): UseAudioPlayerReturn => {
     }
     
     // Vérifier si le fichier est en cache
-    const isCached = await isAudioFileCached(pageNumber);
+    const isCached = await isAudioFileCached(surahNumber);
     if (isCached) {
-      const cachedUri = getCachedAudioUri(pageNumber);
+      const cachedUri = getCachedAudioUri(surahNumber);
       console.log('✅ Fichier audio trouvé en cache:', cachedUri);
       return cachedUri;
     }
     
     // Si le fichier n'est pas en cache, demander le téléchargement
     if (onDownloadRequest) {
-      const shouldDownload = await onDownloadRequest(pageNumber);
+      const shouldDownload = await onDownloadRequest(surahNumber);
       if (!shouldDownload) {
         throw new Error('Le téléchargement du fichier ZIP est requis pour lire les fichiers audio.');
       }
@@ -236,12 +274,12 @@ export const useAudioPlayer = (): UseAudioPlayerReturn => {
     // Télécharger le ZIP et extraire les fichiers
     try {
       console.log('📥 Téléchargement et extraction du fichier ZIP...');
-      const downloadedUri = await downloadAudioFile(pageNumber);
+      const downloadedUri = await downloadAudioFile(surahNumber);
       console.log('✅ Fichier audio téléchargé et mis en cache:', downloadedUri);
       
-      const fileExists = await isAudioFileCached(pageNumber);
+      const fileExists = await isAudioFileCached(surahNumber);
       if (!fileExists) {
-        throw new Error(`لا يوجد ملف صوتي متاح لهذه الصفحة (${formattedPage}.mp3)`);
+        throw new Error(`لا يوجد ملف صوتي متاح لهذه السورة (${formatted}.mp3)`);
       }
       
       return downloadedUri;
@@ -251,20 +289,23 @@ export const useAudioPlayer = (): UseAudioPlayerReturn => {
     }
   };
 
-  const play = async (pageNumber: number, onDownloadRequest?: (pageNumber: number) => Promise<boolean>) => {
+  const play = async (surahNumber: number, onDownloadRequest?: (surahNumber: number) => Promise<boolean>) => {
     try {
       setError(null);
+      if (surahNumber < 1 || surahNumber > 114) {
+        throw new Error(`رقم السورة غير صحيح (1-114): ${surahNumber}`);
+      }
       
       if (onDownloadRequest) {
         onDownloadRequestRef.current = onDownloadRequest;
       }
 
-      // Si l'audio est déjà chargé pour cette page, reprendre la lecture
-      if (soundRef.current && currentPage === pageNumber) {
+      // Si l'audio est déjà chargé pour cette sourate, reprendre la lecture
+      if (soundRef.current && currentPage === surahNumber) {
         const status = await soundRef.current.getStatusAsync();
         if (status.isLoaded) {
           if (status.isPlaying) {
-            console.log('ℹ️ Audio déjà en cours de lecture pour cette page');
+            console.log('ℹ️ Audio déjà en cours de lecture pour cette sourate');
             return;
           }
           
@@ -285,9 +326,9 @@ export const useAudioPlayer = (): UseAudioPlayerReturn => {
 
       setIsLoading(true);
 
-      // Arrêter l'audio précédent si c'est une autre page
-      if (soundRef.current && currentPage !== pageNumber) {
-        console.log('⏹️ Arrêt de l\'audio précédent (autre page)');
+      // Arrêter l'audio précédent si c'est une autre sourate
+      if (soundRef.current && currentPage !== surahNumber) {
+        console.log('⏹️ Arrêt de l\'audio précédent (autre sourate)');
         try {
           await soundRef.current.unloadAsync();
           soundRef.current = null;
@@ -296,12 +337,12 @@ export const useAudioPlayer = (): UseAudioPlayerReturn => {
         }
       }
 
-      // Obtenir le chemin du fichier audio
-      const audioUri = await getAudioFileUri(pageNumber, onDownloadRequest);
+      // Obtenir le chemin du fichier audio (001.mp3 ... 114.mp3)
+      const audioUri = await getAudioFileUri(surahNumber, onDownloadRequest);
       console.log('🎵 URI audio:', audioUri);
 
       // Si c'est la même source et que le sound existe, reprendre
-      if (soundRef.current && currentPage === pageNumber) {
+      if (soundRef.current && currentPage === surahNumber) {
         const status = await soundRef.current.getStatusAsync();
         if (status.isLoaded) {
           try {
@@ -315,12 +356,10 @@ export const useAudioPlayer = (): UseAudioPlayerReturn => {
         }
       }
 
-      // Configurer le mode audio
+      // Configurer le mode audio avec les meilleures options pour les contrôles système Android
       await ExpoAV.setAudioModeAsync({
-        playsInSilentModeIOS: true,
         staysActiveInBackground: true,
         shouldDuckAndroid: false,
-        playThroughEarpieceAndroid: false,
       });
 
       // Créer un nouveau sound expo-av
@@ -356,6 +395,7 @@ export const useAudioPlayer = (): UseAudioPlayerReturn => {
           }
           if (status.didJustFinish) {
             console.log('🏁 Audio terminé');
+            const finishedPage = currentPageRef.current;
             if (isLoopingRef.current && currentPageRef.current !== null) {
               console.log('🔁 Relance en boucle pour la page', currentPageRef.current);
               setTimeout(async () => {
@@ -372,6 +412,10 @@ export const useAudioPlayer = (): UseAudioPlayerReturn => {
               setIsPlaying(false);
               setIsLoading(false);
               setCurrentTime(0);
+              // Notifier l'éventuel callback externe
+              if (onFinishedCallbackRef.current) {
+                onFinishedCallbackRef.current(finishedPage ?? null);
+              }
             }
           }
         } else if (status.error) {
@@ -383,7 +427,7 @@ export const useAudioPlayer = (): UseAudioPlayerReturn => {
       });
 
       soundRef.current = sound;
-      setCurrentPage(pageNumber);
+      setCurrentPage(surahNumber);
       setIsPlaying(true);
       setIsLoading(false);
 
@@ -498,6 +542,10 @@ export const useAudioPlayer = (): UseAudioPlayerReturn => {
     }
   };
 
+  const setOnFinished = (callback: (pageNumber: number | null) => void) => {
+    onFinishedCallbackRef.current = callback;
+  };
+
   return {
     isPlaying,
     isLoading,
@@ -511,5 +559,6 @@ export const useAudioPlayer = (): UseAudioPlayerReturn => {
     duration,
     isLooping,
     toggleLoop,
+    setOnFinished,
   };
 };
