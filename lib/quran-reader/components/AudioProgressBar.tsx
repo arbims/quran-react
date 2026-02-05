@@ -173,15 +173,14 @@ export const AudioProgressBar: React.FC<AudioProgressBarProps> = ({
       }}
     >
       <View style={styles.content}>
-        {/* Zone déplaçable : toute la barre sauf la barre de progression (pour pouvoir déplacer en touchant n'importe où) */}
-        <View style={styles.draggableArea} {...moveBarPanResponder.panHandlers}>
-          <View style={styles.reciterContainer}>
-            <Ionicons name="reorder-three" size={20} color="rgba(255,255,255,0.7)" style={styles.dragHandleIcon} />
-            <Text style={styles.reciterText} allowFontScaling={false}>الشيخ سعود الشريم</Text>
-          </View>
+        {/* Zone déplaçable : uniquement la ligne du récitateur (évite que le PanResponder capture les taps sur les boutons) */}
+        <View style={styles.reciterContainer} {...moveBarPanResponder.panHandlers}>
+          <Ionicons name="reorder-three" size={20} color="rgba(255,255,255,0.7)" style={styles.dragHandleIcon} />
+          <Text style={styles.reciterText} allowFontScaling={false}>الشيخ سعود الشريم</Text>
+        </View>
         
-          {/* Boutons de contrôle */}
-          <View style={styles.controlsContainer}>
+        {/* Boutons de contrôle : hors de la zone de drag, les taps fonctionnent correctement */}
+        <View style={styles.controlsContainer}>
           <TouchableOpacity
             onPress={onPlayPause}
             disabled={isLoading}
@@ -196,10 +195,7 @@ export const AudioProgressBar: React.FC<AudioProgressBarProps> = ({
           </TouchableOpacity>
           
           <TouchableOpacity
-            onPress={() => {
-              if (isDraggingBarRef.current) return;
-              onStop();
-            }}
+            onPress={onStop}
             disabled={isLoading}
             style={[styles.controlButton, isLoading && styles.controlButtonDisabled]}
             activeOpacity={0.7}
@@ -229,7 +225,6 @@ export const AudioProgressBar: React.FC<AudioProgressBarProps> = ({
             <Text style={styles.separatorText} allowFontScaling={false}>/</Text>
             <Text style={styles.timeText} allowFontScaling={false}>{duration > 0 ? formatTime(duration) : '--:--'}</Text>
           </View>
-        </View>
         </View>
         
         {/* Barre de progression (glisser horizontalement pour seek) */}
@@ -279,16 +274,13 @@ const styles = StyleSheet.create({
   content: {
     width: '100%',
   },
-  draggableArea: {
-    width: '100%',
-    paddingVertical: 4,
-  },
   reciterContainer: {
+    width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 8,
-    paddingVertical: 4,
+    paddingVertical: 8,
   },
   dragHandleIcon: {
     marginRight: 8,
