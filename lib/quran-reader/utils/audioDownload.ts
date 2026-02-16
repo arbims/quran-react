@@ -4,6 +4,22 @@ import { Platform } from 'react-native';
 import { AUDIO_DOWNLOAD_PREFERENCE_KEY, AUDIO_ZIP_DOWNLOAD_URL, AUDIO_ZIP_FILENAME } from '../constants';
 
 /**
+ * Répertoire de stockage des fichiers audio.
+ * On utilise documentDirectory au lieu de cacheDirectory pour que les fichiers
+ * ne soient pas supprimés quand l'utilisateur vide le cache du téléphone.
+ */
+const AUDIO_STORAGE_DIR = `${FileSystem.documentDirectory}quran_audio/`;
+const AUDIO_FILES_DIR = `${AUDIO_STORAGE_DIR}audio/`;
+
+/** Convertit une URI file:// en chemin natif pour les modules natifs (ex: react-native-zip-archive sur Android). */
+const toNativePath = (uri: string): string => {
+  if (uri.startsWith('file://')) {
+    return uri.replace(/^file:\/\//, '');
+  }
+  return uri;
+};
+
+/**
  * Import dynamique de react-native-zip-archive pour éviter l'erreur NativeEventEmitter
  * sur le web (react-native-web n'implémente pas cette API native).
  */
@@ -48,7 +64,7 @@ export const isAudioFileCached = async (pageNumber: number): Promise<boolean> =>
   try {
     const formattedPage = pageNumber.toString().padStart(3, '0');
     const fileName = `${formattedPage}.mp3`;
-    const fileUri = `${FileSystem.cacheDirectory}audio/${fileName}`;
+    const fileUri = `${AUDIO_FILES_DIR}${fileName}`;
     
     const fileInfo = await FileSystem.getInfoAsync(fileUri);
     return fileInfo.exists && !fileInfo.isDirectory;
@@ -64,7 +80,7 @@ export const isAudioFileCached = async (pageNumber: number): Promise<boolean> =>
 export const getCachedAudioUri = (pageNumber: number): string => {
   const formattedPage = pageNumber.toString().padStart(3, '0');
   const fileName = `${formattedPage}.mp3`;
-  return `${FileSystem.cacheDirectory}audio/${fileName}`;
+  return `${AUDIO_FILES_DIR}${fileName}`;
 };
 
 export const downloadAudioFile = async (
@@ -97,19 +113,18 @@ export const deleteCachedAudioFile = async (pageNumber: number): Promise<void> =
  */
 export const getAudioCacheSize = async (): Promise<number> => {
   try {
-    const audioDir = `${FileSystem.cacheDirectory}audio/`;
-    const dirInfo = await FileSystem.getInfoAsync(audioDir);
+    const dirInfo = await FileSystem.getInfoAsync(AUDIO_FILES_DIR);
     
     if (!dirInfo.exists) {
       return 0;
     }
     
     // Récupérer tous les fichiers dans le répertoire
-    const files = await FileSystem.readDirectoryAsync(audioDir);
+    const files = await FileSystem.readDirectoryAsync(AUDIO_FILES_DIR);
     let totalSize = 0;
     
     for (const file of files) {
-      const fileUri = `${audioDir}${file}`;
+      const fileUri = `${AUDIO_FILES_DIR}${file}`;
       const fileInfo = await FileSystem.getInfoAsync(fileUri);
       if (fileInfo.exists && !fileInfo.isDirectory && fileInfo.size) {
         totalSize += fileInfo.size;
@@ -128,15 +143,14 @@ export const getAudioCacheSize = async (): Promise<number> => {
  */
 export const clearAudioCache = async (): Promise<void> => {
   try {
-    const audioDir = `${FileSystem.cacheDirectory}audio/`;
-    const dirInfo = await FileSystem.getInfoAsync(audioDir);
+    const dirInfo = await FileSystem.getInfoAsync(AUDIO_FILES_DIR);
     
     if (dirInfo.exists) {
-      await FileSystem.deleteAsync(audioDir, { idempotent: true });
-      console.log('🗑️ Cache audio supprimé');
+      await FileSystem.deleteAsync(AUDIO_FILES_DIR, { idempotent: true });
+      console.log('🗑️ Fichiers audio supprimés');
     }
   } catch (error) {
-    console.error('❌ Erreur lors de la suppression du cache:', error);
+    console.error('❌ Erreur lors de la suppression des fichiers audio:', error);
   }
 };
 
@@ -167,7 +181,7 @@ export const clearDownloadCacheForRetry = async (): Promise<void> => {
  * Récupère l'URI du fichier ZIP en cache
  */
 export const getCachedZipUri = (): string => {
-  return `${FileSystem.cacheDirectory}${AUDIO_ZIP_FILENAME}`;
+  return `${AUDIO_STORAGE_DIR}${AUDIO_ZIP_FILENAME}`;
 };
 
 /** URI du fichier marqueur : présent seulement si le ZIP a été téléchargé en entier (évite d'utiliser un ZIP partiel après crash) */
@@ -228,15 +242,14 @@ export const isZipCached = async (): Promise<boolean> => {
  */
 export const areAudioFilesExtracted = async (): Promise<boolean> => {
   try {
-    const audioDir = `${FileSystem.cacheDirectory}audio/`;
-    const dirInfo = await FileSystem.getInfoAsync(audioDir);
+    const dirInfo = await FileSystem.getInfoAsync(AUDIO_FILES_DIR);
     
     if (!dirInfo.exists) {
       return false;
     }
     
     // Vérifier si au moins un fichier .mp3 existe
-    const files = await FileSystem.readDirectoryAsync(audioDir);
+    const files = await FileSystem.readDirectoryAsync(AUDIO_FILES_DIR);
     const mp3Files = files.filter(file => file.endsWith('.mp3'));
     
     return mp3Files.length > 0;
@@ -253,10 +266,17 @@ export const downloadAudioZip = async (
   onProgress?: (progress: number) => void
 ): Promise<string> => {
   try {
+    // Créer le répertoire de destination avant le téléchargement (évite crash si le dossier n'existe pas)
+    const storageInfo = await FileSystem.getInfoAsync(AUDIO_STORAGE_DIR);
+    if (!storageInfo.exists) {
+      await FileSystem.makeDirectoryAsync(AUDIO_STORAGE_DIR, { intermediates: true });
+    }
+
     const zipUri = getCachedZipUri();
     const remoteUrl = getZipDownloadUrl();
     
-    console.log('📥 Téléchargement du fichier ZIP depuis:', remoteUrl);
+    console.log('📥 Téléchargement du fichier ZIP vers:', zipUri);
+    console.log('📥 URL:', remoteUrl);
     
     // Supprimer le fichier existant s'il est invalide
     const existingFile = await FileSystem.getInfoAsync(zipUri);
@@ -279,31 +299,27 @@ export const downloadAudioZip = async (
       zipUri,
       {},
       (downloadProgress) => {
-        const writtenMB = downloadProgress.totalBytesWritten / 1024 / 1024;
-        const expectedMB = downloadProgress.totalBytesExpectedToWrite / 1024 / 1024;
-        
-        if (downloadProgress.totalBytesExpectedToWrite > 0) {
-          const progress = downloadProgress.totalBytesWritten / downloadProgress.totalBytesExpectedToWrite;
-          if (onProgress) {
-            onProgress(progress);
-          }
+        try {
+          const writtenMB = downloadProgress.totalBytesWritten / 1024 / 1024;
+          const expectedMB = downloadProgress.totalBytesExpectedToWrite / 1024 / 1024;
           
-          // Log tous les 5% ou tous les 10 MB
-          const progressPercent = Math.floor(progress * 100 / 5) * 5;
-          if (progressPercent !== lastLoggedProgress || writtenMB % 10 < 0.1) {
-            console.log(`📥 Progression: ${(progress * 100).toFixed(1)}% (${writtenMB.toFixed(2)} MB / ${expectedMB.toFixed(2)} MB)`);
-            lastLoggedProgress = progressPercent;
+          if (downloadProgress.totalBytesExpectedToWrite > 0) {
+            const progress = downloadProgress.totalBytesWritten / downloadProgress.totalBytesExpectedToWrite;
+            if (onProgress) onProgress(progress);
+            const progressPercent = Math.floor(progress * 100 / 5) * 5;
+            if (progressPercent !== lastLoggedProgress || writtenMB % 10 < 0.1) {
+              console.log(`📥 Progression: ${(progress * 100).toFixed(1)}% (${writtenMB.toFixed(2)} MB / ${expectedMB.toFixed(2)} MB)`);
+              lastLoggedProgress = progressPercent;
+            }
+          } else {
+            if (onProgress) onProgress(0.5);
+            if (Math.floor(writtenMB / 10) !== lastLoggedProgress) {
+              console.log(`📥 Téléchargement en cours: ${writtenMB.toFixed(2)} MB`);
+              lastLoggedProgress = Math.floor(writtenMB / 10);
+            }
           }
-        } else {
-          // Si on ne connaît pas la taille totale, afficher ce qui a été téléchargé
-          if (onProgress) {
-            onProgress(0.5); // Estimer à 50% si on ne connaît pas la taille
-          }
-          // Log tous les 10 MB téléchargés
-          if (Math.floor(writtenMB / 10) !== lastLoggedProgress) {
-            console.log(`📥 Téléchargement en cours: ${writtenMB.toFixed(2)} MB (taille totale inconnue)`);
-            lastLoggedProgress = Math.floor(writtenMB / 10);
-          }
+        } catch (e) {
+          console.warn('⚠️ Erreur callback progression:', e);
         }
       }
     );
@@ -383,12 +399,15 @@ export const downloadAudioZip = async (
 export const extractAudioZip = async (): Promise<void> => {
   try {
     const zipUri = getCachedZipUri();
-    const audioDir = `${FileSystem.cacheDirectory}audio/`;
     
-    // Créer le répertoire audio s'il n'existe pas
-    const dirInfo = await FileSystem.getInfoAsync(audioDir);
+    // Créer le répertoire de stockage et le sous-dossier audio s'ils n'existent pas
+    const storageInfo = await FileSystem.getInfoAsync(AUDIO_STORAGE_DIR);
+    if (!storageInfo.exists) {
+      await FileSystem.makeDirectoryAsync(AUDIO_STORAGE_DIR, { intermediates: true });
+    }
+    const dirInfo = await FileSystem.getInfoAsync(AUDIO_FILES_DIR);
     if (!dirInfo.exists) {
-      await FileSystem.makeDirectoryAsync(audioDir, { intermediates: true });
+      await FileSystem.makeDirectoryAsync(AUDIO_FILES_DIR, { intermediates: true });
     }
     
     // Vérifier si le ZIP existe et est valide
@@ -421,16 +440,18 @@ export const extractAudioZip = async (): Promise<void> => {
       // Utiliser react-native-zip-archive pour décompresser sans charger tout en mémoire
       // Cette bibliothèque utilise du code natif et peut gérer les gros fichiers efficacement
       console.log('📦 Décompression du fichier ZIP avec react-native-zip-archive...');
-      console.log(`📦 Extraction vers: ${audioDir}`);
+      console.log(`📦 Extraction vers: ${AUDIO_FILES_DIR}`);
       
       try {
         // react-native-zip-archive décompresse directement depuis le fichier
-        // sans charger tout en mémoire (import dynamique pour éviter NativeEventEmitter sur web)
+        // Sur Android, passer des chemins natifs (sans file://) évite FileNotFoundException
         const unzip = await getUnzip();
-        await unzip(zipUri, audioDir);
+        const zipPath = toNativePath(zipUri);
+        const destPath = toNativePath(AUDIO_FILES_DIR);
+        await unzip(zipPath, destPath);
         
         // Vérifier combien de fichiers .mp3 ont été extraits
-        const files = await FileSystem.readDirectoryAsync(audioDir);
+        const files = await FileSystem.readDirectoryAsync(AUDIO_FILES_DIR);
         const mp3Files = files.filter(file => file.endsWith('.mp3'));
         
         console.log(`✅ ${mp3Files.length} fichiers audio extraits avec succès`);

@@ -156,7 +156,11 @@ export default function QuranReaderScreen() {
       console.error('❌ Erreur lors du téléchargement:', error);
       setIsDownloading(false);
       setDownloadProgress(0);
-      setDownloadError(error?.message || 'فشل التحميل أو الملف تالف');
+      setDownloadError(error?.message || String(error) || 'فشل التحميل أو الملف تالف');
+      if (downloadRequestPromiseRef.current) {
+        downloadRequestPromiseRef.current.resolve(false);
+        downloadRequestPromiseRef.current = null;
+      }
     }
   };
 
