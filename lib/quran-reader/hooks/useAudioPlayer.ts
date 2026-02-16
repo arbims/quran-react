@@ -22,6 +22,11 @@ interface UseAudioPlayerReturn {
   duration: number;
   isLooping: boolean;
   toggleLoop: () => void;
+  /**
+   * Enregistre un callback appelé quand la lecture d'une page se termine
+   * naturellement (fin de fichier audio, hors arrêt manuel).
+   */
+  setOnFinished: (callback: (pageNumber: number | null) => void) => void;
 }
 
 export const useAudioPlayer = (): UseAudioPlayerReturn => {
@@ -37,6 +42,7 @@ export const useAudioPlayer = (): UseAudioPlayerReturn => {
   const onDownloadRequestRef = useRef<((pageNumber: number) => Promise<boolean>) | undefined>(undefined);
   const isLoopingRef = useRef(false);
   const currentPageRef = useRef<number | null>(null);
+  const onFinishedCallbackRef = useRef<((pageNumber: number | null) => void) | null>(null);
 
   // Configurer la lecture en arrière-plan au démarrage
   useEffect(() => {
@@ -128,6 +134,7 @@ export const useAudioPlayer = (): UseAudioPlayerReturn => {
         // Gérer la fin de lecture
         if (status.didJustFinish) {
           console.log('🏁 Audio terminé');
+          const finishedPage = currentPageRef.current;
           if (isLoopingRef.current && currentPageRef.current !== null) {
             // Relancer en boucle
             console.log('🔁 Relance en boucle pour la page', currentPageRef.current);
@@ -149,6 +156,9 @@ export const useAudioPlayer = (): UseAudioPlayerReturn => {
             setIsLoading(false);
             setCurrentTime(0);
             setCurrentPage(null);
+            if (onFinishedCallbackRef.current) {
+              onFinishedCallbackRef.current(finishedPage ?? null);
+            }
           }
         }
       } else if (status.error) {
@@ -188,6 +198,10 @@ export const useAudioPlayer = (): UseAudioPlayerReturn => {
   useEffect(() => {
     currentPageRef.current = currentPage;
   }, [currentPage]);
+
+  const setOnFinished = (callback: (pageNumber: number | null) => void) => {
+    onFinishedCallbackRef.current = callback;
+  };
 
   const getAudioFileUri = async (pageNumber: number, onDownloadRequest?: (pageNumber: number) => Promise<boolean>): Promise<string> => {
     const formattedPage = pageNumber.toString().padStart(3, '0');
@@ -356,6 +370,7 @@ export const useAudioPlayer = (): UseAudioPlayerReturn => {
           }
           if (status.didJustFinish) {
             console.log('🏁 Audio terminé');
+            const finishedPage = currentPageRef.current;
             if (isLoopingRef.current && currentPageRef.current !== null) {
               console.log('🔁 Relance en boucle pour la page', currentPageRef.current);
               setTimeout(async () => {
@@ -372,6 +387,9 @@ export const useAudioPlayer = (): UseAudioPlayerReturn => {
               setIsPlaying(false);
               setIsLoading(false);
               setCurrentTime(0);
+              if (onFinishedCallbackRef.current) {
+                onFinishedCallbackRef.current(finishedPage ?? null);
+              }
             }
           }
         } else if (status.error) {
@@ -511,5 +529,6 @@ export const useAudioPlayer = (): UseAudioPlayerReturn => {
     duration,
     isLooping,
     toggleLoop,
+    setOnFinished,
   };
 };

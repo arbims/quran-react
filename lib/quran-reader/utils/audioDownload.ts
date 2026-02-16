@@ -4,6 +4,13 @@ import { Platform } from 'react-native';
 import { AUDIO_DOWNLOAD_PREFERENCE_KEY, AUDIO_ZIP_DOWNLOAD_URL, AUDIO_ZIP_FILENAME } from '../constants';
 
 /**
+ * Répertoire persistant pour les fichiers audio (et le ZIP).
+ * On utilise documentDirectory au lieu de cacheDirectory pour que les fichiers
+ * ne soient pas supprimés quand l'utilisateur vide le cache du téléphone.
+ */
+const getAudioStorageDir = (): string => `${FileSystem.documentDirectory}audio/`;
+
+/**
  * Import dynamique de react-native-zip-archive pour éviter l'erreur NativeEventEmitter
  * sur le web (react-native-web n'implémente pas cette API native).
  */
@@ -48,7 +55,7 @@ export const isAudioFileCached = async (pageNumber: number): Promise<boolean> =>
   try {
     const formattedPage = pageNumber.toString().padStart(3, '0');
     const fileName = `${formattedPage}.mp3`;
-    const fileUri = `${FileSystem.cacheDirectory}audio/${fileName}`;
+    const fileUri = `${getAudioStorageDir()}${fileName}`;
     
     const fileInfo = await FileSystem.getInfoAsync(fileUri);
     return fileInfo.exists && !fileInfo.isDirectory;
@@ -64,7 +71,7 @@ export const isAudioFileCached = async (pageNumber: number): Promise<boolean> =>
 export const getCachedAudioUri = (pageNumber: number): string => {
   const formattedPage = pageNumber.toString().padStart(3, '0');
   const fileName = `${formattedPage}.mp3`;
-  return `${FileSystem.cacheDirectory}audio/${fileName}`;
+  return `${getAudioStorageDir()}${fileName}`;
 };
 
 export const downloadAudioFile = async (
@@ -97,7 +104,7 @@ export const deleteCachedAudioFile = async (pageNumber: number): Promise<void> =
  */
 export const getAudioCacheSize = async (): Promise<number> => {
   try {
-    const audioDir = `${FileSystem.cacheDirectory}audio/`;
+    const audioDir = getAudioStorageDir();
     const dirInfo = await FileSystem.getInfoAsync(audioDir);
     
     if (!dirInfo.exists) {
@@ -128,7 +135,7 @@ export const getAudioCacheSize = async (): Promise<number> => {
  */
 export const clearAudioCache = async (): Promise<void> => {
   try {
-    const audioDir = `${FileSystem.cacheDirectory}audio/`;
+    const audioDir = getAudioStorageDir();
     const dirInfo = await FileSystem.getInfoAsync(audioDir);
     
     if (dirInfo.exists) {
@@ -164,10 +171,10 @@ export const clearDownloadCacheForRetry = async (): Promise<void> => {
 };
 
 /**
- * Récupère l'URI du fichier ZIP en cache
+ * Récupère l'URI du fichier ZIP (stockage persistant, pas supprimé au vidage du cache)
  */
 export const getCachedZipUri = (): string => {
-  return `${FileSystem.cacheDirectory}${AUDIO_ZIP_FILENAME}`;
+  return `${FileSystem.documentDirectory}${AUDIO_ZIP_FILENAME}`;
 };
 
 /** URI du fichier marqueur : présent seulement si le ZIP a été téléchargé en entier (évite d'utiliser un ZIP partiel après crash) */
@@ -228,7 +235,7 @@ export const isZipCached = async (): Promise<boolean> => {
  */
 export const areAudioFilesExtracted = async (): Promise<boolean> => {
   try {
-    const audioDir = `${FileSystem.cacheDirectory}audio/`;
+    const audioDir = getAudioStorageDir();
     const dirInfo = await FileSystem.getInfoAsync(audioDir);
     
     if (!dirInfo.exists) {
@@ -383,8 +390,8 @@ export const downloadAudioZip = async (
 export const extractAudioZip = async (): Promise<void> => {
   try {
     const zipUri = getCachedZipUri();
-    const audioDir = `${FileSystem.cacheDirectory}audio/`;
-    
+    const audioDir = getAudioStorageDir();
+
     // Créer le répertoire audio s'il n'existe pas
     const dirInfo = await FileSystem.getInfoAsync(audioDir);
     if (!dirInfo.exists) {

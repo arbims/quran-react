@@ -16,6 +16,11 @@ import { ARABIC_FONT } from '../constants';
 const BAR_APPROX_HEIGHT = 160;
 const MARGIN = 16;
 
+// Bleu Qaloun : principal #3F5FE8, clair #5B7FFF, foncé #2D4AC7
+const BLUE_MAIN = '#3F5FE8';
+const BLUE_LIGHT = '#5B7FFF';
+const BLUE_DARK = '#2D4AC7';
+
 interface AudioProgressBarProps {
   currentTime: number;
   duration: number;
@@ -28,7 +33,6 @@ interface AudioProgressBarProps {
   onToggleLoop: () => void;
 }
 
-// Fonction utilitaire pour formater le temps en mm:ss
 const formatTime = (seconds: number): string => {
   if (!isFinite(seconds) || isNaN(seconds) || seconds < 0) {
     return '00:00';
@@ -78,11 +82,9 @@ export const AudioProgressBar: React.FC<AudioProgressBarProps> = ({
   const updateSeekPosition = (pageX: number, shouldSeek = false) => {
     if (progressBarRef.current && duration > 0) {
       progressBarRef.current.measure((fx, fy, width, height, px, py) => {
-        // px est la position absolue X de la barre
         const relativePosition = Math.max(0, Math.min(1, (pageX - px) / width));
         const seekTime = relativePosition * duration;
         setDragProgress(relativePosition * 100);
-        // Appeler onSeek seulement si demandé (pour éviter trop d'appels pendant le drag)
         if (shouldSeek) {
           onSeek(seekTime);
         }
@@ -94,26 +96,20 @@ export const AudioProgressBar: React.FC<AudioProgressBarProps> = ({
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: (_, gestureState) => {
-        // Activer le responder seulement si le mouvement est horizontal (plus de 10px)
         return Math.abs(gestureState.dx) > 10;
       },
       onPanResponderGrant: (evt) => {
         setIsDragging(true);
-        // Mettre à jour visuellement immédiatement au début (sans seek audio encore)
         updateSeekPosition(evt.nativeEvent.pageX, false);
       },
       onPanResponderMove: (evt) => {
-        // Mettre à jour visuellement pendant le drag (la position visuelle change en temps réel)
-        // On ne fait pas le seek audio à chaque mouvement pour éviter trop d'appels
         updateSeekPosition(evt.nativeEvent.pageX, false);
       },
       onPanResponderRelease: (evt) => {
-        // Au release, appliquer le seek audio avec la position finale
         updateSeekPosition(evt.nativeEvent.pageX, true);
         setIsDragging(false);
       },
       onPanResponderTerminate: (evt) => {
-        // En cas d'annulation (par exemple, une autre interaction), appliquer quand même le seek
         updateSeekPosition(evt.nativeEvent.pageX, true);
         setIsDragging(false);
       },
@@ -159,7 +155,7 @@ export const AudioProgressBar: React.FC<AudioProgressBarProps> = ({
 
   return (
     <LinearGradient
-      colors={['rgba(63, 95, 232, 0.98)', 'rgba(91, 127, 255, 0.98)']}
+      colors={['#2D4AC7FA', '#3F5FE8FA']}
       start={{ x: 0, y: 0 }}
       end={{ x: 0, y: 1 }}
       style={[styles.container, containerStyle]}
@@ -173,61 +169,60 @@ export const AudioProgressBar: React.FC<AudioProgressBarProps> = ({
       }}
     >
       <View style={styles.content}>
-        {/* Zone déplaçable : uniquement la ligne du récitateur (évite que le PanResponder capture les taps sur les boutons) */}
-        <View style={styles.reciterContainer} {...moveBarPanResponder.panHandlers}>
-          <Ionicons name="reorder-three" size={20} color="rgba(255,255,255,0.7)" style={styles.dragHandleIcon} />
-          <Text style={styles.reciterText} allowFontScaling={false}>الشيخ علي الحذيفي </Text>
-        </View>
-        
-        {/* Boutons de contrôle : hors de la zone de drag, les taps fonctionnent correctement */}
-        <View style={styles.controlsContainer}>
-          <TouchableOpacity
-            onPress={onPlayPause}
-            disabled={isLoading}
-            style={[styles.controlButton, isLoading && styles.controlButtonDisabled]}
-            activeOpacity={0.7}
-          >
-            <Ionicons
-              name={isPlaying ? 'pause' : 'play'}
-              size={24}
-              color="#FFFFFF"
-            />
-          </TouchableOpacity>
-          
-          <TouchableOpacity
-            onPress={onStop}
-            disabled={isLoading}
-            style={[styles.controlButton, isLoading && styles.controlButtonDisabled]}
-            activeOpacity={0.7}
-          >
-            <Ionicons
-              name="stop"
-              size={24}
-              color="#FFFFFF"
-            />
-          </TouchableOpacity>
-          
-          <TouchableOpacity
-            onPress={onToggleLoop}
-            disabled={isLoading}
-            style={[styles.controlButton, isLooping && styles.controlButtonActive]}
-            activeOpacity={0.7}
-          >
-            <Ionicons
-              name="repeat"
-              size={24}
-              color={isLooping ? "#FFD700" : "#FFFFFF"}
-            />
-          </TouchableOpacity>
-          
-          <View style={styles.timeContainer}>
-            <Text style={styles.timeText} allowFontScaling={false}>{formatTime(isDragging ? (dragProgress / 100) * duration : currentTime)}</Text>
-            <Text style={styles.separatorText} allowFontScaling={false}>/</Text>
-            <Text style={styles.timeText} allowFontScaling={false}>{duration > 0 ? formatTime(duration) : '--:--'}</Text>
+        <View style={styles.draggableArea} {...moveBarPanResponder.panHandlers}>
+          <View style={styles.reciterContainer}>
+            <Ionicons name="reorder-three" size={20} color="rgba(255,255,255,0.7)" style={styles.dragHandleIcon} />
+            <Text style={styles.reciterText} allowFontScaling={false}>الشيخ محمد سحيم</Text>
+          </View>
+
+          <View style={styles.controlsContainer}>
+            <TouchableOpacity
+              onPress={onPlayPause}
+              disabled={isLoading}
+              style={[styles.controlButton, isLoading && styles.controlButtonDisabled]}
+              activeOpacity={0.7}
+            >
+              <Ionicons
+                name={isPlaying ? 'pause' : 'play'}
+                size={24}
+                color="#FFFFFF"
+              />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={onStop}
+              disabled={isLoading}
+              style={[styles.controlButton, isLoading && styles.controlButtonDisabled]}
+              activeOpacity={0.7}
+            >
+              <Ionicons
+                name="stop"
+                size={24}
+                color="#FFFFFF"
+              />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={onToggleLoop}
+              disabled={isLoading}
+              style={[styles.controlButton, isLooping && styles.controlButtonActive]}
+              activeOpacity={0.7}
+            >
+              <Ionicons
+                name="repeat"
+                size={24}
+                color={isLooping ? '#FFD700' : '#FFFFFF'}
+              />
+            </TouchableOpacity>
+
+            <View style={styles.timeContainer}>
+              <Text style={styles.timeText} allowFontScaling={false}>{formatTime(isDragging ? (dragProgress / 100) * duration : currentTime)}</Text>
+              <Text style={styles.separatorText} allowFontScaling={false}>/</Text>
+              <Text style={styles.timeText} allowFontScaling={false}>{duration > 0 ? formatTime(duration) : '--:--'}</Text>
+            </View>
           </View>
         </View>
-        
-        {/* Barre de progression (glisser horizontalement pour seek) */}
+
         <View
           ref={progressBarRef}
           style={styles.progressBarContainer}
@@ -235,7 +230,7 @@ export const AudioProgressBar: React.FC<AudioProgressBarProps> = ({
         >
           <View style={styles.progressBarBackground}>
             <LinearGradient
-              colors={['#5B7FFF', '#3F5FE8', '#3F5FE8']}
+              colors={[BLUE_LIGHT, BLUE_MAIN, BLUE_DARK]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={[
@@ -274,13 +269,16 @@ const styles = StyleSheet.create({
   content: {
     width: '100%',
   },
-  reciterContainer: {
+  draggableArea: {
     width: '100%',
+    paddingVertical: 4,
+  },
+  reciterContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 8,
-    paddingVertical: 8,
+    paddingVertical: 4,
   },
   dragHandleIcon: {
     marginRight: 8,
@@ -314,8 +312,8 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   controlButtonActive: {
-    backgroundColor: 'rgba(255, 215, 0, 0.5)',
-    borderColor: '#FFD700',
+    backgroundColor: 'rgba(255, 215, 0, 0.3)',
+    borderColor: 'rgba(255, 215, 0, 0.5)',
   },
   timeContainer: {
     flexDirection: 'row',
@@ -368,8 +366,8 @@ const styles = StyleSheet.create({
     borderRadius: 11,
     backgroundColor: '#FFFFFF',
     borderWidth: 2,
-    borderColor: '#3F5FE8',
-    marginLeft: -11, // Pour centrer le thumb sur la position
+    borderColor: BLUE_DARK,
+    marginLeft: -11,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
@@ -377,4 +375,3 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
 });
-

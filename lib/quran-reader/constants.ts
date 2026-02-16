@@ -21,4 +21,4 @@ export const AUDIO_ZIP_FILENAME = 'audio.zip';
 // 2. OneDrive : https://onedrive.live.com/download?cid=...&resid=...&authkey=...
 //
 // 3. Serveur web : https://votre-serveur.com/audio.zip
-export const AUDIO_ZIP_DOWNLOAD_URL: string | null = 'https://www.dropbox.com/scl/fi/uy6twcxe2d0nj1e9xmqez/audio.zip?rlkey=4u59jf2j7gsvno2p9r6qawjt5&st=8v62lbac&dl=1'
+export const AUDIO_ZIP_DOWNLOAD_URL: string | null = 'https://www.dropbox.com/scl/fi/zuctw4rv9mur49x2o9xza/mohamedsehim.zip?rlkey=a5rslhsc4glrfi9sv4mvm1t2t&st=xrmn4u63&dl=1'

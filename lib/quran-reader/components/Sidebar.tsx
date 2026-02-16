@@ -24,6 +24,8 @@ interface SidebarProps {
   onSetCurrentPageIndex: (index: number) => void;
   onToggleMenu: () => void;
   onPlayAudio: (page: number) => void;
+  onPlayAudioRange: (startPage: number, endPage: number) => void;
+  onOpenAudioRangeModal: () => void;
   onPauseAudio: () => void;
   onStopAudio: () => void;
   isAudioPlaying: boolean;
@@ -51,6 +53,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSetCurrentPageIndex,
   onToggleMenu,
   onPlayAudio,
+  onPlayAudioRange,
+  onOpenAudioRangeModal,
   onPauseAudio,
   onStopAudio,
   isAudioPlaying,
@@ -59,21 +63,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const isLandscape = screenWidth > screenHeight;
-  // insets.bottom peut être 0 - garantir un espace minimum pour la barre de navigation
   const bottomSafeArea = Math.max(insets.bottom, 48);
-  // En mode paysage : marge devant le texte du menu selon la taille des boutons de navigation
   const landscapeNavMargin = isLandscape ? Math.max(insets.left ?? 0, insets.right ?? 0, 48) : 0;
   const fontScale = Math.min(Math.max(screenWidth / 360, 0.85), 1.2);
   const titleFontSize = 17;
   const menuFontSize = 15;
   const switchFontSize = 15;
-  
+
   const sidebarWidth = isLandscape ? SIDEBAR_WIDTH_LANDSCAPE : SIDEBAR_WIDTH;
 
   return (
     <Animated.View style={[styles.sidebarContainer, { width: sidebarWidth, transform: [{ translateX: slideAnim }] }]}>
       <LinearGradient
-        colors={['#3F5FE8', '#5B7FFF', '#3F5FE8']} // Dégradé bleu
+        colors={['#3F5FE8', '#5B7FFF', '#3F5FE8']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={[
@@ -87,7 +89,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         ]}
       >
       {!surahListVisible ? (
-        <ScrollView 
+        <ScrollView
           style={{ flex: 1 }}
           contentContainerStyle={{ paddingBottom: bottomSafeArea + 20, flexGrow: 1 }}
           showsVerticalScrollIndicator={true}
@@ -134,15 +136,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <Ionicons name="list" size={22} color="#FFFFFF" style={styles.menuIcon} />
             </View>
           </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.menuItem, isAudioLoading && !isAudioPlaying && styles.menuItemDisabled]} 
+          <TouchableOpacity
+            style={[styles.menuItem, isAudioLoading && !isAudioPlaying && styles.menuItemDisabled]}
             onPress={() => {
               if (isAudioPlaying) {
                 onPauseAudio();
               } else {
-                onPlayAudio(currentPage);
+                onOpenAudioRangeModal();
               }
-            }} 
+            }}
             activeOpacity={0.7}
             disabled={isAudioLoading && !isAudioPlaying}
           >
@@ -150,11 +152,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <Text style={[styles.menuItemText, { fontSize: menuFontSize }]} allowFontScaling={false} numberOfLines={1}>
                 {isAudioLoading ? 'جاري التحميل...' : audioError ? 'إعادة المحاولة' : isAudioPlaying ? 'إيقاف مؤقت' : 'تشغيل الصوت'}
               </Text>
-              <Ionicons 
-                name={isAudioPlaying ? 'pause' : 'play'} 
-                size={22} 
-                color={isAudioLoading && !audioError ? "#888888" : "#FFFFFF"} 
-                style={styles.menuIcon} 
+              <Ionicons
+                name={isAudioPlaying ? 'pause' : 'play'}
+                size={22}
+                color={isAudioLoading && !audioError ? '#888888' : '#FFFFFF'}
+                style={styles.menuIcon}
               />
             </View>
           </TouchableOpacity>
@@ -164,9 +166,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </View>
           )}
           {isAudioPlaying && (
-            <TouchableOpacity 
-              style={styles.menuItem} 
-              onPress={onStopAudio} 
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={onStopAudio}
               activeOpacity={0.7}
             >
               <View style={[styles.menuItemContent, { flexShrink: 0 }]}>
@@ -191,7 +193,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <TouchableOpacity onPress={() => onSetSurahListVisible(false)} style={styles.backButton} activeOpacity={0.7}>
               <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
             </TouchableOpacity>
-            <Text style={[styles.sidebarTitle, { flex: 1, textAlign: 'right', fontSize: switchFontSize }]} >قائمة السور</Text>
+            <Text style={[styles.sidebarTitle, { flex: 1, textAlign: 'right', fontSize: switchFontSize }]}>قائمة السور</Text>
           </View>
           <View style={styles.divider} />
           <FlatList
@@ -208,14 +210,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       onSetCurrentPage(targetPage);
                       onSetCurrentPageIndex(surahIndex);
                     }
-                    
+
                     onSetSurahListVisible(false);
                     onToggleMenu();
-                    
+
                     setTimeout(() => {
-                      flatListRef.current?.scrollToIndex({ 
-                        index: surahIndex, 
-                        animated: true 
+                      flatListRef.current?.scrollToIndex({
+                        index: surahIndex,
+                        animated: true
                       });
                     }, 300);
                   }
@@ -243,15 +245,15 @@ const styles = StyleSheet.create({
     right: 0,
     top: 0,
     bottom: 0,
-    zIndex: 2000, // Au-dessus de la barre de progression audio (zIndex: 1000)
-    elevation: 25, // Au-dessus de la barre de progression audio (elevation: 20)
+    zIndex: 2000,
+    elevation: 25,
   },
-  sidebar: { 
+  sidebar: {
     flex: 1,
-    paddingHorizontal: 20, 
-    borderTopLeftRadius: 24, 
-    borderBottomLeftRadius: 24, 
-    elevation: 25, // Au-dessus de la barre de progression audio
+    paddingHorizontal: 20,
+    borderTopLeftRadius: 24,
+    borderBottomLeftRadius: 24,
+    elevation: 25,
     direction: 'ltr',
     shadowColor: '#FFFFFF',
     shadowOffset: { width: -4, height: 0 },
@@ -261,27 +263,27 @@ const styles = StyleSheet.create({
     borderLeftColor: '#FFFFFF',
   },
   sidebarHeader: { marginTop: 6, marginBottom: 12, paddingBottom: 3 },
-  sidebarTitle: { 
+  sidebarTitle: {
     fontSize: 22,
-    color: '#FFFFFF', 
-    textAlign: 'right', 
-    marginBottom: 8, 
-    marginRight: 0, 
+    color: '#FFFFFF',
+    textAlign: 'right',
+    marginBottom: 8,
+    marginRight: 0,
     letterSpacing: 0.5,
     fontFamily: 'NotoKufiArabic_400Regular',
   },
-  pageIndicator: { 
-    textAlign: 'right', 
-    color: '#FFFFFF', 
-    fontSize: 15, 
-    marginRight: 0, 
+  pageIndicator: {
+    textAlign: 'right',
+    color: '#FFFFFF',
+    fontSize: 15,
+    marginRight: 0,
     fontWeight: '500',
     fontFamily: ARABIC_FONT,
   },
-  menuItem: { 
-    paddingVertical: 10, 
+  menuItem: {
+    paddingVertical: 10,
     paddingBottom: 13,
-    borderBottomWidth: 1, 
+    borderBottomWidth: 1,
     borderBottomColor: 'rgba(255, 255, 255, 0.2)',
     marginVertical: 2,
   },
@@ -294,38 +296,38 @@ const styles = StyleSheet.create({
     marginRight: 12,
     marginLeft: 12,
   },
-  menuItemText: { 
-    fontSize: 15, 
-    color: '#FFFFFF', 
-    textAlign: 'right', 
+  menuItemText: {
+    fontSize: 15,
+    color: '#FFFFFF',
+    textAlign: 'right',
     marginRight: 0,
     fontFamily: ARABIC_FONT,
   },
-  switchRow: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    justifyContent: 'space-between', 
-    paddingVertical: 12, 
+  switchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
     paddingBottom: 15,
     paddingHorizontal: 0,
     gap: 12,
-    borderBottomWidth: 1, 
+    borderBottomWidth: 1,
     borderBottomColor: 'rgba(255, 255, 255, 0.2)',
     marginTop: 4,
   },
-  switchLabel: { 
+  switchLabel: {
     flex: 1,
-    fontSize: 16, 
-    color: '#FFFFFF', 
-    textAlign: 'right', 
-    marginRight: 0, 
+    fontSize: 16,
+    color: '#FFFFFF',
+    textAlign: 'right',
+    marginRight: 0,
     fontWeight: '500',
     fontFamily: ARABIC_FONT,
   },
   divider: { height: 1, backgroundColor: 'rgba(255, 255, 255, 0.3)', marginVertical: 8, marginBottom: 11 },
   surahListHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, paddingVertical: 4, paddingBottom: 7 },
-  backButton: { 
-    paddingVertical: 8, 
+  backButton: {
+    paddingVertical: 8,
     paddingBottom: 11,
     paddingHorizontal: 12,
     borderRadius: 8,
@@ -336,28 +338,28 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   surahList: { flex: 1 },
-  surahListItem: { 
-    paddingVertical: 10, 
+  surahListItem: {
+    paddingVertical: 10,
     paddingBottom: 13,
-    paddingHorizontal: 12, 
-    borderBottomWidth: 1, 
+    paddingHorizontal: 12,
+    borderBottomWidth: 1,
     borderBottomColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 8,
     marginVertical: 2,
   },
-  surahListItemText: { 
-    fontSize: 18, 
-    color: '#FFFFFF', 
-    fontWeight: '600', 
-    marginBottom: 4, 
-    textAlign: 'right', 
+  surahListItemText: {
+    fontSize: 18,
+    color: '#FFFFFF',
+    fontWeight: '600',
+    marginBottom: 4,
+    textAlign: 'right',
     marginRight: 0,
     fontFamily: ARABIC_FONT,
   },
-  surahListItemSubtext: { 
-    fontSize: 14, 
-    color: '#FFFFFF', 
-    textAlign: 'right', 
+  surahListItemSubtext: {
+    fontSize: 14,
+    color: '#FFFFFF',
+    textAlign: 'right',
     marginRight: 0,
     opacity: 0.8,
     fontFamily: ARABIC_FONT,
@@ -382,4 +384,3 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
 });
-

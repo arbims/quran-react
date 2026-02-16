@@ -4,15 +4,15 @@ import * as NavigationBar from 'expo-navigation-bar';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  Alert,
-  Animated,
-  FlatList,
-  I18nManager,
-  Pressable,
-  StatusBar,
-  StyleSheet,
-  useWindowDimensions,
-  View
+    Alert,
+    Animated,
+    FlatList,
+    I18nManager,
+    Pressable,
+    StatusBar,
+    StyleSheet,
+    useWindowDimensions,
+    View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -20,6 +20,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AudioDownloadModal } from '@/lib/quran-reader/components/AudioDownloadModal';
 import { AudioFileMissingModal } from '@/lib/quran-reader/components/AudioFileMissingModal';
 import { AudioProgressBar } from '@/lib/quran-reader/components/AudioProgressBar';
+import { AudioRangeModal } from '@/lib/quran-reader/components/AudioRangeModal';
 import { Navbar } from '@/lib/quran-reader/components/Navbar';
 import { PageInputModal } from '@/lib/quran-reader/components/PageInputModal';
 import { PageItem } from '@/lib/quran-reader/components/PageItem';
@@ -79,11 +80,12 @@ export default function QuranReaderScreen() {
   const startIndex = getStartIndex();
   const finalStartIndex = startIndex !== -1 ? startIndex : 0;
 
-  const [currentPage, setCurrentPage] = useState<number>(reversedQuranPages[finalStartIndex]?.number || 2);
+  const [currentPage, setCurrentPage] = useState<number>(reversedQuranPages[finalStartIndex]?.number || 1);
   const [hifdhPage, setHifdhPage] = useState<number | null>(null);
   const [lastReadPage, setLastReadPage] = useState<number | null>(null);
   const [pageInputVisible, setPageInputVisible] = useState(false);
   const [pageInputValue, setPageInputValue] = useState('');
+  const [audioRangeModalVisible, setAudioRangeModalVisible] = useState(false);
   const [navbarVisible, setNavbarVisible] = useState(true);
   const [audioProgressBarVisible, setAudioProgressBarVisible] = useState(false); // Cachée par défaut
   const isStoppingRef = useRef(false); // Flag pour éviter les animations lors du stop
@@ -103,9 +105,13 @@ export default function QuranReaderScreen() {
     resolve: (value: boolean) => void;
     reject: (error: any) => void;
   } | null>(null);
+  const [audioRange, setAudioRange] = useState<{
+    start: number;
+    end: number;
+  } | null>(null);
 
   // Hook pour la lecture audio
-  const { isPlaying: isAudioPlaying, isLoading: isAudioLoading, error: audioError, play: playAudio, pause: pauseAudio, stop: stopAudio, seek: seekAudio, currentPage: audioCurrentPage, currentTime: audioCurrentTime, duration: audioDuration, isLooping: isAudioLooping, toggleLoop: toggleAudioLoop } = useAudioPlayer();
+  const { isPlaying: isAudioPlaying, isLoading: isAudioLoading, error: audioError, play: playAudio, pause: pauseAudio, stop: stopAudio, seek: seekAudio, currentPage: audioCurrentPage, currentTime: audioCurrentTime, duration: audioDuration, isLooping: isAudioLooping, toggleLoop: toggleAudioLoop, setOnFinished: setAudioOnFinished } = useAudioPlayer();
 
   // Fonction pour gérer la demande de téléchargement : afficher la modale quand l'utilisateur clique sur play et les fichiers sont absents
   const handleDownloadRequest = async (pageNumber: number): Promise<boolean> => {
@@ -206,6 +212,29 @@ export default function QuranReaderScreen() {
     }
   };
 
+  // Démarrer la lecture audio d'une plage de pages (ex : 1 à 5)
+  const handlePlayAudioRange = async (startPage: number, endPage: number) => {
+    if (
+      !Number.isFinite(startPage) ||
+      !Number.isFinite(endPage) ||
+      startPage < 1 ||
+      endPage < 1 ||
+      startPage > 604 ||
+      endPage > 604 ||
+      startPage > endPage
+    ) {
+      Alert.alert('خطأ', 'يرجى إدخال نطاق صفحات صحيح بين 1 و 604 (من صفحة أصغر إلى صفحة أكبر)');
+      return;
+    }
+
+    // Sauvegarder le range actif
+    setAudioRange({ start: startPage, end: endPage });
+
+    // Aller à la première page du range et lancer la lecture
+    jumpToPageWithoutToggle(startPage);
+    await handlePlayAudio(startPage);
+  };
+
   // Gérer la visibilité de la barre de progression (un seul useEffect pour éviter les animations)
   useEffect(() => {
     // VÉRIFIER LE FLAG EN PREMIER pour éviter toute modification pendant le stop
@@ -254,6 +283,34 @@ export default function QuranReaderScreen() {
       handlePlayAudio(currentPage);
     }
   }, [currentPage]);
+
+  // Enchaîner automatiquement la page suivante quand une page audio se termine,
+  // si un range est actif (lecture de plusieurs pages à la suite)
+  useEffect(() => {
+    setAudioOnFinished((finishedPage) => {
+      if (!audioRange || finishedPage == null) {
+        return;
+      }
+
+      const { start, end } = audioRange;
+
+      // Si la page terminée est hors du range, ne rien faire
+      if (finishedPage < start || finishedPage > end) {
+        return;
+      }
+
+      // Dernière page du range : arrêter le mode range
+      if (finishedPage >= end) {
+        setAudioRange(null);
+        return;
+      }
+
+      const nextPage = finishedPage + 1;
+      setAudioRange({ start, end });
+      jumpToPageWithoutToggle(nextPage);
+      handlePlayAudio(nextPage);
+    });
+  }, [audioRange, setAudioOnFinished]);
 
   useEffect(() => {
     loadStorage();
@@ -393,8 +450,8 @@ export default function QuranReaderScreen() {
 
   const handleGoToPage = () => {
     const pageNum = parseInt(pageInputValue);
-    if (isNaN(pageNum) || pageNum < 2 || pageNum > 604) {
-      Alert.alert('خطأ', 'يرجى إدخال رقم صفحة صحيح بين 2 و 604');
+    if (isNaN(pageNum) || pageNum < 1 || pageNum > 604) {
+      Alert.alert('خطأ', 'يرجى إدخال رقم صفحة صحيح بين 1 و 604');
       return;
     }
     setPageInputVisible(false);
@@ -527,6 +584,8 @@ export default function QuranReaderScreen() {
         onSetCurrentPageIndex={setCurrentPageIndex}
         onToggleMenu={toggleMenu}
         onPlayAudio={handlePlayAudio}
+        onPlayAudioRange={handlePlayAudioRange}
+        onOpenAudioRangeModal={() => setAudioRangeModalVisible(true)}
         onPauseAudio={pauseAudio}
         onStopAudio={stopAudio}
         isAudioPlaying={isAudioPlaying}
@@ -534,9 +593,7 @@ export default function QuranReaderScreen() {
         audioError={audioError}
       />
       
-      {/* Barre de progression audio en bas de l'écran */}
-      {/* Afficher la barre seulement si audioProgressBarVisible est true (géré par le useEffect) */}
-      {/* Ne pas vérifier audioDuration/audioCurrentPage ici pour éviter les animations lors du stop */}
+      {/* Barre de progression audio flottante et déplaçable */}
       {audioProgressBarVisible && (
         <View style={StyleSheet.absoluteFillObject} pointerEvents="box-none">
           <AudioProgressBar
@@ -607,6 +664,19 @@ export default function QuranReaderScreen() {
         onClose={() => {
           setAudioFileMissingModalVisible(false);
           setMissingAudioPage(null);
+        }}
+      />
+
+      {/* Modal pour sélectionner la plage de pages audio */}
+      <AudioRangeModal
+        visible={audioRangeModalVisible}
+        currentPage={currentPage}
+        onClose={() => setAudioRangeModalVisible(false)}
+        onConfirm={(startPage, endPage) => {
+          handlePlayAudioRange(startPage, endPage);
+        }}
+        onPlayCurrentPage={(page: number) => {
+          handlePlayAudio(page);
         }}
       />
     </View>
