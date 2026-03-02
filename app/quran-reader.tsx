@@ -274,6 +274,15 @@ export default function QuranReaderScreen() {
   const TOTAL_PAGES = 521;
   const readingProgress = Math.round((currentPage / TOTAL_PAGES) * 100);
   
+  // Fonction pour calculer la couleur de la barre de progression selon l'avancement
+  const getProgressBarColor = (progress: number): string => {
+    if (progress <= 0) return '#FFFFFF'; // Blanc au début
+    if (progress <= 25) return '#FFD700'; // Jaune doré
+    if (progress <= 50) return '#FFA500'; // Orange
+    if (progress <= 75) return '#FF6347'; // Rouge tomate
+    return '#a15541'; // Marron (couleur du thème) à la fin
+  };
+  
   // Afficher la position de la page dans la console (pour debug)
   useEffect(() => {
     console.log(`Page ${currentPage} est à ${pageSide === 'left' ? 'gauche' : 'droite'}`);
@@ -594,6 +603,29 @@ export default function QuranReaderScreen() {
         </View>
       </View>
 
+      {/* Barre de progression fine en bas */}
+      <View
+        pointerEvents="none"
+        style={[
+          styles.bottomProgressBarContainer,
+          {
+            bottom: insets.bottom,
+          },
+        ]}
+      >
+        <View style={styles.bottomProgressBarTrack}>
+          <View
+            style={[
+              styles.bottomProgressBarFill,
+              {
+                width: `${readingProgress}%`,
+                backgroundColor: getProgressBarColor(readingProgress),
+              },
+            ]}
+          />
+        </View>
+      </View>
+
       {menuVisible && <Pressable style={styles.overlay} onPress={toggleMenu} />}
 
       <Sidebar
@@ -741,5 +773,21 @@ const styles = StyleSheet.create({
     width: '100%',
     backgroundColor: '#a15541',
     borderRadius: 3,
+  },
+  bottomProgressBarContainer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    height: 3,
+    zIndex: 2500,
+  },
+  bottomProgressBarTrack: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#FFFFFF',
+  },
+  bottomProgressBarFill: {
+    height: '100%',
+    borderRadius: 0,
   },
 });

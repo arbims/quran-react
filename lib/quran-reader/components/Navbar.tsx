@@ -27,7 +27,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   pageSide,
 }) => {
   const TOTAL_PAGES = 521;
-  const readingProgress = Math.round((currentPage / TOTAL_PAGES) * 100);
 
   if (!visible) return null;
 
@@ -49,7 +48,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     >
       <View style={styles.navbarLeft}>
         <Text style={styles.navbarPageNumber} allowFontScaling={false}>
-          صفحة {currentPage} / {TOTAL_PAGES} ({readingProgress}٪)
+          صفحة {currentPage} / {TOTAL_PAGES}
         </Text>
       </View>
       <View style={styles.navbarCenter}>

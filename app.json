@@ -68,7 +68,10 @@
     },
     "owner": "elarbims",
     "ios": {
-      "bundleIdentifier": "com.mushaf.shamarly"
+      "bundleIdentifier": "com.mushaf.shamarly",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "extra": {
       "router": {},
