@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "القرآن الكريم رواية حفص",
-    "slug": "quran-hafs",
+    "name": "مصحف الشمرلي",
+    "slug": "mushaf-shamarly",
     "version": "1.0.3",
     "orientation": "default",
     "icon": "./assets/icon.png",
-    "scheme": "quran-hafs",
+    "scheme": "mushaf-shamarly",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "androidStatusBar": {
@@ -25,7 +25,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.quran.hafs",
+      "package": "com.mushaf.shamarly",
       "versionCode": 4,
       "permissions": [
         "FOREGROUND_SERVICE",
@@ -66,14 +66,15 @@
       "typedRoutes": true,
       "reactCompiler": true
     },
-    "extra": {
-      "eas": {
-        "projectId": "764ce668-0e60-4016-89e0-8129e953af60"
-      }
-    },
     "owner": "elarbims",
     "ios": {
-      "bundleIdentifier": "com.quran.hafs"
+      "bundleIdentifier": "com.mushaf.shamarly"
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "a34d1973-cb17-46f5-b256-fbdee47925b7"
+      }
     }
   }
 }

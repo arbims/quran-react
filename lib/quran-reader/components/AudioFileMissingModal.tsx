@@ -26,11 +26,8 @@ export const AudioFileMissingModal: React.FC<AudioFileMissingModalProps> = ({
     >
       <View style={styles.modalOverlay}>
         <View style={styles.modalContainer}>
-          <LinearGradient
-            colors={['#44572C', '#5A6B3F', '#44572C']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.modalContent}
+          <View
+            style={[styles.modalContent, { backgroundColor: '#a15541' }]}
           >
             <View style={styles.modalHeader}>
               <Ionicons name="information-circle-outline" size={48} color="#FFA500" />
@@ -50,7 +47,7 @@ export const AudioFileMissingModal: React.FC<AudioFileMissingModalProps> = ({
             >
               <Text style={styles.buttonText} allowFontScaling={false}>حسناً</Text>
             </TouchableOpacity>
-          </LinearGradient>
+          </View>
         </View>
       </View>
     </Modal>
@@ -75,7 +72,7 @@ const styles = StyleSheet.create({
     padding: 24,
     borderRadius: 20,
     borderWidth: 2,
-    borderColor: '#FFFFFF',
+    borderColor: '#f9f9df',
   },
   modalHeader: {
     alignItems: 'center',

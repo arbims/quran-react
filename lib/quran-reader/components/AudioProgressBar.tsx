@@ -158,11 +158,8 @@ export const AudioProgressBar: React.FC<AudioProgressBarProps> = ({
       };
 
   return (
-    <LinearGradient
-      colors={['rgba(68, 87, 44, 0.98)', 'rgba(90, 107, 63, 0.98)']}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 0, y: 1 }}
-      style={[styles.container, containerStyle]}
+    <View
+      style={[styles.container, { backgroundColor: '#a15541' }, containerStyle]}
       onStartShouldSetResponder={() => true}
       onResponderTerminationRequest={() => false}
       onTouchStart={(e) => {
@@ -177,7 +174,7 @@ export const AudioProgressBar: React.FC<AudioProgressBarProps> = ({
         <View style={styles.draggableArea} {...moveBarPanResponder.panHandlers}>
           <View style={styles.reciterContainer}>
             <Ionicons name="reorder-three" size={20} color="rgba(255,255,255,0.7)" style={styles.dragHandleIcon} />
-            <Text style={styles.reciterText} allowFontScaling={false}>الشيخ عادل ريان</Text>
+            <Text style={styles.reciterText} allowFontScaling={false}> محمد صديق المنشاوي </Text>
           </View>
         
           {/* Boutons de contrôle */}
@@ -237,7 +234,7 @@ export const AudioProgressBar: React.FC<AudioProgressBarProps> = ({
         >
           <View style={styles.progressBarBackground}>
             <LinearGradient
-              colors={['#5A6B3F', '#44572C', '#3A4A25']}
+              colors={['#a15541', '#f9f9df', '#a15541']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={[
@@ -254,7 +251,7 @@ export const AudioProgressBar: React.FC<AudioProgressBarProps> = ({
           </View>
         </View>
       </View>
-    </LinearGradient>
+    </View>
   );
 };
 
@@ -373,7 +370,7 @@ const styles = StyleSheet.create({
     borderRadius: 11,
     backgroundColor: '#FFFFFF',
     borderWidth: 2,
-    borderColor: '#3A4A25',
+    borderColor: '#a15541',
     marginLeft: -11, // Pour centrer le thumb sur la position
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },

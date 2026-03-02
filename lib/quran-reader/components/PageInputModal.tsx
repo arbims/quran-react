@@ -28,17 +28,14 @@ export const PageInputModal: React.FC<PageInputModalProps> = ({
     >
       <Pressable style={styles.modalOverlay} onPress={onClose}>
         <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
-          <LinearGradient
-            colors={['#44572C', '#5A6B3F', '#44572C']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.modalGradient}
+          <View
+            style={[styles.modalGradient, { backgroundColor: '#a15541' }]}
           >
             <View style={styles.modalHeader}>
               <Ionicons name="navigate" size={28} color="#FFFFFF" />
               <Text style={styles.modalTitle} allowFontScaling={false}>الانتقال إلى صفحة</Text>
             </View>
-            <Text style={styles.modalSubtitle} allowFontScaling={false}>أدخل رقم الصفحة (1 - 604)</Text>
+            <Text style={styles.modalSubtitle} allowFontScaling={false}>أدخل رقم الصفحة (1 - 521)</Text>
             <View style={styles.inputContainer}>
               <Ionicons name="document-text-outline" size={20} color="#FFFFFF" style={styles.inputIcon} />
               <TextInput
@@ -70,7 +67,7 @@ export const PageInputModal: React.FC<PageInputModalProps> = ({
                 <Text style={[styles.modalButtonText, { color: '#000000' }]} allowFontScaling={false}>انتقل</Text>
               </TouchableOpacity>
             </View>
-          </LinearGradient>
+          </View>
         </Pressable>
       </Pressable>
     </Modal>
@@ -89,12 +86,12 @@ const styles = StyleSheet.create({
     width: '85%',
     maxWidth: 400,
     elevation: 16,
-    shadowColor: '#FFFFFF',
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.5,
+    shadowOpacity: 0.3,
     shadowRadius: 16,
     borderWidth: 2,
-    borderColor: '#FFFFFF',
+    borderColor: '#f9f9df',
     overflow: 'hidden',
   },
   modalGradient: {
@@ -128,9 +125,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.4)',
+    borderColor: 'rgba(249, 249, 223, 0.4)',
     borderRadius: 16,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    backgroundColor: 'rgba(249, 249, 223, 0.1)',
     marginBottom: 24,
     paddingHorizontal: 16,
   },
@@ -160,13 +157,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   modalButtonCancel: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: 'rgba(249, 249, 223, 0.2)',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.4)',
+    borderColor: 'rgba(249, 249, 223, 0.4)',
   },
   modalButtonConfirm: {
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#FFFFFF',
+    backgroundColor: '#f9f9df',
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.5,
     shadowRadius: 8,

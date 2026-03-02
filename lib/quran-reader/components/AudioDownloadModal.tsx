@@ -45,11 +45,8 @@ export const AudioDownloadModal: React.FC<AudioDownloadModalProps> = ({
     >
       <View style={styles.modalOverlay}>
         <View style={styles.modalContainer}>
-          <LinearGradient
-            colors={['#44572C', '#5A6B3F', '#44572C']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.modalContent}
+          <View
+            style={[styles.modalContent, { backgroundColor: '#a15541' }]}
           >
             <View style={styles.modalHeader}>
               <Ionicons 
@@ -77,7 +74,7 @@ export const AudioDownloadModal: React.FC<AudioDownloadModalProps> = ({
                     <View style={[styles.progressBar, { width: `${progressPercentage}%` }]} />
                   </View>
                   <Text style={styles.progressText} allowFontScaling={false}>{progressPercentage}%</Text>
-                  <ActivityIndicator size="small" color="#44572C" style={styles.loader} />
+                  <ActivityIndicator size="small" color="#a15541" style={styles.loader} />
                 </View>
               )}
 
@@ -130,7 +127,7 @@ export const AudioDownloadModal: React.FC<AudioDownloadModalProps> = ({
               </TouchableOpacity>
             </View>
             )}
-          </LinearGradient>
+          </View>
         </View>
       </View>
     </Modal>
@@ -155,7 +152,7 @@ const styles = StyleSheet.create({
     padding: 24,
     borderRadius: 20,
     borderWidth: 2,
-    borderColor: '#FFFFFF',
+    borderColor: '#f9f9df',
   },
   modalHeader: {
     alignItems: 'center',
@@ -196,12 +193,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#FFFFFF',
+    borderColor: '#f9f9df',
     gap: 8,
   },
   downloadButton: {
     backgroundColor: 'rgba(76, 175, 80, 0.3)',
-    borderColor: '#44572C',
+    borderColor: '#a15541',
   },
   retryButton: {
     backgroundColor: 'rgba(255, 152, 0, 0.4)',
@@ -214,7 +211,7 @@ const styles = StyleSheet.create({
   },
   cancelButton: {
     backgroundColor: 'transparent',
-    borderColor: 'rgba(255, 255, 255, 0.5)',
+    borderColor: 'rgba(249, 249, 223, 0.5)',
     marginTop: 4,
   },
   buttonText: {
@@ -236,14 +233,14 @@ const styles = StyleSheet.create({
   progressBarContainer: {
     width: '100%',
     height: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: 'rgba(249, 249, 223, 0.2)',
     borderRadius: 4,
     overflow: 'hidden',
     marginBottom: 12,
   },
   progressBar: {
     height: '100%',
-    backgroundColor: '#44572C',
+    backgroundColor: '#a15541',
     borderRadius: 4,
   },
   progressText: {

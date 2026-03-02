@@ -76,13 +76,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <Animated.View style={[styles.sidebarContainer, { width: sidebarWidth, transform: [{ translateX: slideAnim }] }]}>
-      <LinearGradient
-        colors={['#44572C', '#5A6B3F', '#44572C']} // Dégradé vert
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
+      <View
         style={[
           styles.sidebar,
           {
+            backgroundColor: '#a15541',
             paddingTop: insets.top + 48 + 8,
             paddingBottom: bottomSafeArea + 12,
             paddingLeft: 20 + landscapeNavMargin,
@@ -236,7 +234,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           />
         </>
       )}
-      </LinearGradient>
+      </View>
     </Animated.View>
   );
 };
@@ -257,12 +255,12 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 24, 
     elevation: 25, // Au-dessus de la barre de progression audio
     direction: 'ltr',
-    shadowColor: '#FFFFFF',
+    shadowColor: '#000',
     shadowOffset: { width: -4, height: 0 },
-    shadowOpacity: 0.5,
+    shadowOpacity: 0.3,
     shadowRadius: 12,
     borderLeftWidth: 2,
-    borderLeftColor: '#FFFFFF',
+    borderLeftColor: '#f9f9df',
   },
   sidebarHeader: { marginTop: 6, marginBottom: 12, paddingBottom: 3 },
   sidebarTitle: { 
@@ -286,7 +284,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10, 
     paddingBottom: 13,
     borderBottomWidth: 1, 
-    borderBottomColor: 'rgba(255, 255, 255, 0.2)',
+    borderBottomColor: 'rgba(249, 249, 223, 0.2)',
     marginVertical: 2,
   },
   menuItemContent: {
@@ -314,7 +312,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 0,
     gap: 12,
     borderBottomWidth: 1, 
-    borderBottomColor: 'rgba(255, 255, 255, 0.2)',
+    borderBottomColor: 'rgba(249, 249, 223, 0.2)',
     marginTop: 4,
   },
   switchLabel: { 
@@ -326,14 +324,14 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     fontFamily: ARABIC_FONT,
   },
-  divider: { height: 1, backgroundColor: 'rgba(255, 255, 255, 0.3)', marginVertical: 8, marginBottom: 11 },
+  divider: { height: 1, backgroundColor: 'rgba(249, 249, 223, 0.3)', marginVertical: 8, marginBottom: 11 },
   surahListHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, paddingVertical: 4, paddingBottom: 7 },
   backButton: { 
     paddingVertical: 8, 
     paddingBottom: 11,
     paddingHorizontal: 12,
     borderRadius: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'rgba(249, 249, 223, 0.1)',
     minWidth: 40,
     minHeight: 40,
     alignItems: 'center',
@@ -345,7 +343,7 @@ const styles = StyleSheet.create({
     paddingBottom: 13,
     paddingHorizontal: 12, 
     borderBottomWidth: 1, 
-    borderBottomColor: 'rgba(255, 255, 255, 0.2)',
+    borderBottomColor: 'rgba(249, 249, 223, 0.2)',
     borderRadius: 8,
     marginVertical: 2,
   },

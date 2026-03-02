@@ -6,7 +6,7 @@ export const SIDEBAR_WIDTH_LANDSCAPE = 320; // Plus large en paysage pour évite
 
 export const ARABIC_FONT = 'NotoKufiArabic_400Regular';
 export const AUDIO_DOWNLOAD_PREFERENCE_KEY = 'AUDIO_DOWNLOAD_PREFERENCE';
-export const AUDIO_ZIP_FILENAME = 'audio.zip';
+export const AUDIO_ZIP_FILENAME = 'minshawi.zip';
 
 // URL de téléchargement direct du fichier ZIP
 // ⚠️ OBLIGATOIRE : Cette URL doit être configurée pour que le téléchargement fonctionne
@@ -21,4 +21,4 @@ export const AUDIO_ZIP_FILENAME = 'audio.zip';
 // 2. OneDrive : https://onedrive.live.com/download?cid=...&resid=...&authkey=...
 //
 // 3. Serveur web : https://votre-serveur.com/audio.zip
-export const AUDIO_ZIP_DOWNLOAD_URL: string | null = 'https://www.dropbox.com/scl/fi/6aaq6grzwcepv0dkjnq54/adel-rayan.zip?rlkey=qln0vjz7ciynw1p03znjw40s7&st=kgibxa7g&dl=1'
+export const AUDIO_ZIP_DOWNLOAD_URL: string | null = 'https://www.dropbox.com/scl/fi/uxazys379vyqbeiahjayx/minshawi.zip?rlkey=w2d8l8hcoybv67hozhn2gkhwo&st=6t3f1w0l&dl=1'

@@ -1,5 +1,4 @@
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Surah } from '../types';
@@ -27,6 +26,9 @@ export const Navbar: React.FC<NavbarProps> = ({
   onToggleMenu,
   pageSide,
 }) => {
+  const TOTAL_PAGES = 521;
+  const readingProgress = Math.round((currentPage / TOTAL_PAGES) * 100);
+
   if (!visible) return null;
 
   // Debug: vérifier que pageSide est bien passé
@@ -35,11 +37,9 @@ export const Navbar: React.FC<NavbarProps> = ({
   }, [currentPage, pageSide]);
 
   return (
-    <LinearGradient
-      colors={['#44572C', '#5A6B3F', '#44572C']} // Dégradé vert
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
+    <View
       style={[styles.navbar, { 
+        backgroundColor: '#a15541',
         paddingTop: isLandscape ? Math.max(insets.top, 8) + 4 : insets.top + 4,
         paddingBottom: isLandscape ? Math.max(insets.bottom, 8) + 2 : 4,
         minHeight: isLandscape ? 40 : 44,
@@ -48,7 +48,9 @@ export const Navbar: React.FC<NavbarProps> = ({
       }]}
     >
       <View style={styles.navbarLeft}>
-        <Text style={styles.navbarPageNumber} allowFontScaling={false}>صفحة {currentPage}</Text>
+        <Text style={styles.navbarPageNumber} allowFontScaling={false}>
+          صفحة {currentPage} / {TOTAL_PAGES} ({readingProgress}٪)
+        </Text>
       </View>
       <View style={styles.navbarCenter}>
         {/* Effet de livre ouvert - design réaliste */}
@@ -108,7 +110,7 @@ export const Navbar: React.FC<NavbarProps> = ({
       <TouchableOpacity onPress={onToggleMenu} style={styles.menuButton} activeOpacity={0.7}>
         <Ionicons name="menu" size={24} color="#FFFFFF" />
       </TouchableOpacity>
-    </LinearGradient>
+    </View>
   );
 };
 
@@ -126,13 +128,13 @@ const styles = StyleSheet.create({
     minHeight: 44,
     zIndex: 3000, // Au-dessus de la sidebar (zIndex: 2000) et de la barre de progression audio (zIndex: 1000)
     elevation: 30, // Au-dessus de la sidebar (elevation: 25) et de la barre de progression audio (elevation: 20)
-    shadowColor: '#FFFFFF',
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.5,
+    shadowOpacity: 0.3,
     shadowRadius: 8,
     direction: 'ltr',
     borderBottomWidth: 2,
-    borderBottomColor: '#FFFFFF',
+    borderBottomColor: '#f9f9df',
   },
   menuButton: {
     padding: 8,
@@ -141,9 +143,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: 'rgba(249, 249, 223, 0.2)',
     borderWidth: 1,
-    borderColor: '#FFFFFF',
+    borderColor: '#f9f9df',
   },
   navbarLeft: {
     flex: 1,
@@ -200,9 +202,9 @@ const styles = StyleSheet.create({
   bookPage: {
     width: 18,
     height: 14,
-    backgroundColor: '#F5F5DC', // Couleur crème pour les pages
+    backgroundColor: '#fffef5', // Couleur très claire pour les pages non actives
     borderWidth: 1,
-    borderColor: 'rgba(200, 180, 150, 0.8)',
+    borderColor: 'rgba(200, 180, 150, 0.4)',
     borderRadius: 2,
     overflow: 'hidden',
     position: 'relative',
@@ -230,10 +232,10 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   bookPageActive: {
-    backgroundColor: '#FFFFFF',
-    borderColor: 'rgba(255, 255, 255, 0.9)',
+    backgroundColor: '#f9f9df',
+    borderColor: 'rgba(249, 249, 223, 0.9)',
     borderWidth: 1.5,
-    shadowColor: '#FFFFFF',
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.6,
     shadowRadius: 4,
@@ -248,7 +250,7 @@ const styles = StyleSheet.create({
   },
   bookLine: {
     height: 1,
-    backgroundColor: 'rgba(200, 180, 150, 0.3)',
+    backgroundColor: 'rgba(200, 180, 150, 0.15)',
     marginHorizontal: 1,
   },
   bookLineActive: {
@@ -272,7 +274,7 @@ const styles = StyleSheet.create({
   bookSpine: {
     width: 2,
     height: 14,
-    backgroundColor: '#8B4513', // Couleur marron pour la reliure
+    backgroundColor: '#a15541', // Couleur marron pour la reliure
     borderRadius: 1,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 0 },

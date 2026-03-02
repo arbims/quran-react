@@ -4,15 +4,15 @@ import * as NavigationBar from 'expo-navigation-bar';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  Alert,
-  Animated,
-  FlatList,
-  I18nManager,
-  Pressable,
-  StatusBar,
-  StyleSheet,
-  useWindowDimensions,
-  View
+    Alert,
+    Animated,
+    FlatList,
+    I18nManager,
+    Pressable,
+    StatusBar,
+    StyleSheet,
+    useWindowDimensions,
+    View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -223,11 +223,11 @@ export default function QuranReaderScreen() {
       !Number.isFinite(endPage) ||
       startPage < 1 ||
       endPage < 1 ||
-      startPage > 604 ||
-      endPage > 604 ||
+      startPage > 521 ||
+      endPage > 521 ||
       startPage > endPage
     ) {
-      Alert.alert('خطأ', 'يرجى إدخال نطاق صفحات صحيح بين 1 و 604 (من صفحة أصغر إلى صفحة أكبر)');
+      Alert.alert('خطأ', 'يرجى إدخال نطاق صفحات صحيح بين 1 و 521 (من صفحة أصغر إلى صفحة أكبر)');
       return;
     }
 
@@ -271,6 +271,8 @@ export default function QuranReaderScreen() {
 
   const currentSurah = getCurrentSurah(currentPage);
   const pageSide = getPageSide(currentPage); // 'left' ou 'right'
+  const TOTAL_PAGES = 521;
+  const readingProgress = Math.round((currentPage / TOTAL_PAGES) * 100);
   
   // Afficher la position de la page dans la console (pour debug)
   useEffect(() => {
@@ -327,7 +329,7 @@ export default function QuranReaderScreen() {
     
     // Afficher la barre de navigation et harmoniser sa couleur (évite le gap noir sur Redmi/MIUI)
     NavigationBar.setVisibilityAsync('visible');
-    NavigationBar.setBackgroundColorAsync('#f5f0e6'); // Crème, même que le fond
+    NavigationBar.setBackgroundColorAsync('#f9f9df'); // Beige clair, même que le fond
     
     // Empêcher l'écran de se mettre en veille
     activateKeepAwakeAsync();
@@ -335,7 +337,7 @@ export default function QuranReaderScreen() {
     // Nettoyer à la sortie
     return () => {
       NavigationBar.setVisibilityAsync('visible');
-      NavigationBar.setBackgroundColorAsync('#f5f0e6');
+      NavigationBar.setBackgroundColorAsync('#f9f9df');
       deactivateKeepAwake();
     };
   }, []);
@@ -454,8 +456,8 @@ export default function QuranReaderScreen() {
 
   const handleGoToPage = () => {
     const pageNum = parseInt(pageInputValue);
-    if (isNaN(pageNum) || pageNum < 1 || pageNum > 604) {
-      Alert.alert('خطأ', 'يرجى إدخال رقم صفحة صحيح بين 1 و 604');
+    if (isNaN(pageNum) || pageNum < 1 || pageNum > 521) {
+      Alert.alert('خطأ', 'يرجى إدخال رقم صفحة صحيح بين 1 و 521');
       return;
     }
     setPageInputVisible(false);
@@ -566,6 +568,31 @@ export default function QuranReaderScreen() {
             // Ne plus masquer la barre audio au tap : l'utilisateur peut la déplacer ; masquer avec Stop ou en scrollant
           }}
         />
+
+      {/* Barre latérale de progression de lecture */}
+      <View
+        pointerEvents="none"
+        style={[
+          styles.readingProgressContainer,
+          {
+            top: navbarVisible
+              ? (isLandscape
+                  ? Math.max(insets.top, 8) + 40 + 12
+                  : insets.top + 56)
+              : Math.max(insets.top, 8),
+            bottom: Math.max(insets.bottom, 8) + 16,
+          },
+        ]}
+      >
+        <View style={styles.readingProgressTrack}>
+          <View
+            style={[
+              styles.readingProgressFill,
+              { height: `${readingProgress}%` },
+            ]}
+          />
+        </View>
+      </View>
 
       {menuVisible && <Pressable style={styles.overlay} onPress={toggleMenu} />}
 
@@ -687,11 +714,32 @@ export default function QuranReaderScreen() {
   );
 }
 
-// Couleur crème pour correspondre aux pages du Coran - évite la barre noire visible
+// Couleur beige clair pour correspondre aux pages du Coran - évite la barre noire visible
 // sur certains appareils Android (zone sous le contenu / barre de navigation)
-const PAGE_BACKGROUND_COLOR = '#f5f0e6';
+const PAGE_BACKGROUND_COLOR = '#f9f9df';
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: PAGE_BACKGROUND_COLOR, direction: 'ltr' },
   overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 10 },
+  readingProgressContainer: {
+    position: 'absolute',
+    right: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 2500,
+  },
+  readingProgressTrack: {
+    width: 6,
+    borderRadius: 3,
+    backgroundColor: 'rgba(0, 0, 0, 0.08)',
+    overflow: 'hidden',
+    flexDirection: 'column',
+    justifyContent: 'flex-end',
+    height: '100%',
+  },
+  readingProgressFill: {
+    width: '100%',
+    backgroundColor: '#a15541',
+    borderRadius: 3,
+  },
 });
