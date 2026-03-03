@@ -594,7 +594,7 @@ export default function QuranReaderScreen() {
               styles.bottomProgressBarFill,
               {
                 width: `${readingProgress}%`,
-                backgroundColor: getProgressBarColor(readingProgress),
+                backgroundColor: '#a15541',
               },
             ]}
           />
@@ -732,7 +732,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
-    height: 3,
+    height: 7,
     zIndex: 2500,
   },
   bottomProgressBarTrack: {
