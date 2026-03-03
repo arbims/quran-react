@@ -578,31 +578,6 @@ export default function QuranReaderScreen() {
           }}
         />
 
-      {/* Barre latérale de progression de lecture */}
-      <View
-        pointerEvents="none"
-        style={[
-          styles.readingProgressContainer,
-          {
-            top: navbarVisible
-              ? (isLandscape
-                  ? Math.max(insets.top, 8) + 40 + 12
-                  : insets.top + 56)
-              : Math.max(insets.top, 8),
-            bottom: Math.max(insets.bottom, 8) + 16,
-          },
-        ]}
-      >
-        <View style={styles.readingProgressTrack}>
-          <View
-            style={[
-              styles.readingProgressFill,
-              { height: `${readingProgress}%` },
-            ]}
-          />
-        </View>
-      </View>
-
       {/* Barre de progression fine en bas */}
       <View
         pointerEvents="none"
@@ -753,27 +728,6 @@ const PAGE_BACKGROUND_COLOR = '#f9f9df';
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: PAGE_BACKGROUND_COLOR, direction: 'ltr' },
   overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 10 },
-  readingProgressContainer: {
-    position: 'absolute',
-    right: 6,
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 2500,
-  },
-  readingProgressTrack: {
-    width: 6,
-    borderRadius: 3,
-    backgroundColor: 'rgba(0, 0, 0, 0.08)',
-    overflow: 'hidden',
-    flexDirection: 'column',
-    justifyContent: 'flex-end',
-    height: '100%',
-  },
-  readingProgressFill: {
-    width: '100%',
-    backgroundColor: '#a15541',
-    borderRadius: 3,
-  },
   bottomProgressBarContainer: {
     position: 'absolute',
     left: 0,
