@@ -79,9 +79,11 @@ export const PageItem = React.memo<PageItemProps>(({ item, width, height, isLand
   } else {
     // Mode portrait : image 100% x 100% (remplit tout l'espace) - flex: 1 pour tous les écrans
     const portraitBottomInset = Math.max(insets.bottom, 24);
+    // Ajouter 3px pour laisser la place à la barre de progression
+    const progressBarHeight = 3;
 
     return (
-      <View style={[styles.pageContainer, styles.portraitContainer, { width, marginBottom: portraitBottomInset }]}>
+      <View style={[styles.pageContainer, styles.portraitContainer, { width, marginBottom: portraitBottomInset + progressBarHeight }]}>
         <GestureDetector gesture={pinchGesture}>
           <Animated.View style={[styles.image, animatedStyle]}>
             <Image source={item.source} style={[styles.image, { marginTop: 3 }]} contentFit="fill" />
