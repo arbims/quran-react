@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useRef, useState } from 'react';
-import { PanResponder, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import { Animated, PanResponder, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ARABIC_FONT } from '../constants';
 
@@ -19,6 +19,8 @@ const MARGIN = 16;
 interface AudioProgressBarProps {
   currentTime: number;
   duration: number;
+  currentPage?: number | null;
+  currentSurahName?: string | null;
   isPlaying: boolean;
   isLoading: boolean;
   onSeek: (time: number) => void;
@@ -41,6 +43,8 @@ const formatTime = (seconds: number): string => {
 export const AudioProgressBar: React.FC<AudioProgressBarProps> = ({
   currentTime,
   duration,
+  currentPage,
+  currentSurahName,
   isPlaying,
   isLoading,
   onSeek,
@@ -55,6 +59,8 @@ export const AudioProgressBar: React.FC<AudioProgressBarProps> = ({
   const [dragProgress, setDragProgress] = useState(0);
   const progressBarRef = useRef<View>(null);
   const barWidth = Math.max(screenWidth - 2 * MARGIN, 200);
+
+  const playPauseScale = useRef(new Animated.Value(1)).current;
 
   const [hasUserMovedBar, setHasUserMovedBar] = useState(false);
   const getBottomY = () =>
@@ -174,23 +180,46 @@ export const AudioProgressBar: React.FC<AudioProgressBarProps> = ({
         <View style={styles.draggableArea} {...moveBarPanResponder.panHandlers}>
           <View style={styles.reciterContainer}>
             <Ionicons name="reorder-three" size={20} color="rgba(255,255,255,0.7)" style={styles.dragHandleIcon} />
-            <Text style={styles.reciterText} allowFontScaling={false}> محمد صديق المنشاوي </Text>
+            <View style={styles.reciterTextContainer}>
+              <Text style={styles.reciterText} allowFontScaling={false}>محمد صديق المنشاوي</Text>
+              {(currentPage || currentSurahName) && (
+                <Text style={styles.pageSurahText} allowFontScaling={false}>
+                  {currentSurahName ? currentSurahName : 'صفحة'}{currentPage ? ` - ${currentPage}` : ''}
+                </Text>
+              )}
+            </View>
           </View>
         
           {/* Boutons de contrôle */}
           <View style={styles.controlsContainer}>
-          <TouchableOpacity
-            onPress={onPlayPause}
-            disabled={isLoading}
-            style={[styles.controlButton, isLoading && styles.controlButtonDisabled]}
-            activeOpacity={0.7}
-          >
-            <Ionicons
-              name={isPlaying ? 'pause' : 'play'}
-              size={24}
-              color="#FFFFFF"
-            />
-          </TouchableOpacity>
+          <Animated.View style={{ transform: [{ scale: playPauseScale }] }}>
+            <TouchableOpacity
+              onPress={() => {
+                Animated.sequence([
+                  Animated.timing(playPauseScale, {
+                    toValue: 0.9,
+                    duration: 80,
+                    useNativeDriver: true,
+                  }),
+                  Animated.timing(playPauseScale, {
+                    toValue: 1,
+                    duration: 80,
+                    useNativeDriver: true,
+                  }),
+                ]).start();
+                onPlayPause();
+              }}
+              disabled={isLoading}
+              style={[styles.controlButton, isLoading && styles.controlButtonDisabled]}
+              activeOpacity={0.7}
+            >
+              <Ionicons
+                name={isPlaying ? 'pause' : 'play'}
+                size={24}
+                color="#FFFFFF"
+              />
+            </TouchableOpacity>
+          </Animated.View>
           
           <TouchableOpacity
             onPress={onStop}
@@ -201,6 +230,23 @@ export const AudioProgressBar: React.FC<AudioProgressBarProps> = ({
             <Ionicons
               name="stop"
               size={24}
+              color="#FFFFFF"
+            />
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            onPress={() => {
+              if (duration > 0) {
+                onSeek(0);
+              }
+            }}
+            disabled={isLoading || duration <= 0}
+            style={[styles.controlButton, (isLoading || duration <= 0) && styles.controlButtonDisabled]}
+            activeOpacity={0.7}
+          >
+            <Ionicons
+              name="play-back"
+              size={22}
               color="#FFFFFF"
             />
           </TouchableOpacity>
@@ -287,12 +333,25 @@ const styles = StyleSheet.create({
   dragHandleIcon: {
     marginRight: 8,
   },
+  reciterTextContainer: {
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   reciterText: {
     fontSize: 14,
     color: '#FFFFFF',
     opacity: 0.9,
     fontFamily: ARABIC_FONT,
     fontWeight: '500',
+    textAlign: 'center',
+  },
+  pageSurahText: {
+    marginTop: 2,
+    fontSize: 12,
+    color: '#FFEFD5',
+    opacity: 0.9,
+    fontFamily: ARABIC_FONT,
     textAlign: 'center',
   },
   controlsContainer: {

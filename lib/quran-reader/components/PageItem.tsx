@@ -1,4 +1,5 @@
 import { Image } from 'expo-image';
+import { ColorMatrix, invert } from 'react-native-color-matrix-image-filters';
 import React, { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
@@ -12,9 +13,10 @@ export interface PageItemProps {
   isLandscape: boolean;
   insets: { top: number; bottom: number; left?: number; right?: number };
   navbarVisible: boolean;
+  isDarkMode?: boolean;
 }
 
-export const PageItem = React.memo<PageItemProps>(({ item, width, height, isLandscape, insets, navbarVisible }) => {
+export const PageItem = React.memo<PageItemProps>(({ item, width, height, isLandscape, insets, navbarVisible, isDarkMode = false }) => {
   const [imageSize, setImageSize] = useState<{ width: number; height: number } | null>(null);
 
   useEffect(() => {
@@ -55,7 +57,16 @@ export const PageItem = React.memo<PageItemProps>(({ item, width, height, isLand
       : imageWidth * 1.4;
 
     return (
-      <View style={[styles.pageContainer, { width: width, height: landscapeContainerHeight, backgroundColor: '#fff' }]}>
+      <View
+        style={[
+          styles.pageContainer,
+          {
+            width: width,
+            height: landscapeContainerHeight,
+            backgroundColor: isDarkMode ? '#000000' : '#ffffff',
+          },
+        ]}
+      >
         <ScrollView
           style={styles.portraitScrollView}
           contentContainerStyle={[styles.portraitScrollContent, { paddingHorizontal: landscapeNavMargin }]}
@@ -64,13 +75,25 @@ export const PageItem = React.memo<PageItemProps>(({ item, width, height, isLand
         >
           <GestureDetector gesture={pinchGesture}>
             <Animated.View style={[styles.portraitImageWrapper, { width: imageWidth, height: imageHeight }, animatedStyle]}>
-              <Image
-                source={item.source}
-                style={{ width: imageWidth, height: imageHeight }}
-                contentFit="contain"
-                onLoad={(e) => setImageSize({ width: e.source.width, height: e.source.height })}
-                cachePolicy="memory-disk"
-              />
+              {isDarkMode ? (
+                <ColorMatrix matrix={invert()}>
+                  <Image
+                    source={item.source}
+                    style={{ width: imageWidth, height: imageHeight }}
+                    contentFit="contain"
+                    onLoad={(e) => setImageSize({ width: e.source.width, height: e.source.height })}
+                    cachePolicy="memory-disk"
+                  />
+                </ColorMatrix>
+              ) : (
+                <Image
+                  source={item.source}
+                  style={{ width: imageWidth, height: imageHeight }}
+                  contentFit="contain"
+                  onLoad={(e) => setImageSize({ width: e.source.width, height: e.source.height })}
+                  cachePolicy="memory-disk"
+                />
+              )}
             </Animated.View>
           </GestureDetector>
         </ScrollView>
@@ -83,10 +106,26 @@ export const PageItem = React.memo<PageItemProps>(({ item, width, height, isLand
     const progressBarHeight = 3;
 
     return (
-      <View style={[styles.pageContainer, styles.portraitContainer, { width, marginBottom: portraitBottomInset + progressBarHeight }]}>
+      <View
+        style={[
+          styles.pageContainer,
+          styles.portraitContainer,
+          {
+            width,
+            marginBottom: portraitBottomInset + progressBarHeight,
+            backgroundColor: isDarkMode ? '#000000' : '#ffffff',
+          },
+        ]}
+      >
         <GestureDetector gesture={pinchGesture}>
-          <Animated.View style={[styles.image, animatedStyle]}>
-            <Image source={item.source} style={[styles.image, { marginTop: 3 }]} contentFit="fill" />
+          <Animated.View style={[styles.imageWrapper, animatedStyle]}>
+            {isDarkMode ? (
+              <ColorMatrix matrix={invert()}>
+                <Image source={item.source} style={[styles.image, { marginTop: 3 }]} contentFit="fill" />
+              </ColorMatrix>
+            ) : (
+              <Image source={item.source} style={[styles.image, { marginTop: 3 }]} contentFit="fill" />
+            )}
           </Animated.View>
         </GestureDetector>
       </View>
@@ -110,9 +149,10 @@ PageItem.displayName = 'PageItem';
 const styles = StyleSheet.create({
   pageContainer: { justifyContent: 'flex-start', alignItems: 'stretch' },
   portraitContainer: { flex: 1 },
-  image: { width: '100%', height: '100%', flex: 1 },
+  imageWrapper: { width: '100%', height: '100%', flex: 1, position: 'relative' },
+  image: { width: '100%', height: '100%' },
   portraitScrollView: { flex: 1 },
   portraitScrollContent: { flexGrow: 1, alignItems: 'center' },
-  portraitImageWrapper: { alignItems: 'center', justifyContent: 'center' },
+  portraitImageWrapper: { alignItems: 'center', justifyContent: 'center', position: 'relative' },
 });
 

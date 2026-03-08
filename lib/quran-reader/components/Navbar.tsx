@@ -14,6 +14,7 @@ interface NavbarProps {
   insets: { top: number; bottom: number; left: number; right: number };
   onToggleMenu: () => void;
   pageSide: 'left' | 'right';
+  isDarkMode?: boolean;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -26,6 +27,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   insets,
   onToggleMenu,
   pageSide,
+  isDarkMode = false,
 }) => {
   if (!visible) return null;
 
@@ -34,9 +36,13 @@ export const Navbar: React.FC<NavbarProps> = ({
     console.log('Navbar - currentPage:', currentPage, 'pageSide:', pageSide);
   }, [currentPage, pageSide]);
 
+  const gradientColors = isDarkMode
+    ? ['#1b1b1f', '#111111', '#111111']
+    : ['#a15541', '#a15541', '#a15541'];
+
   return (
     <LinearGradient
-      colors={['#a15541', '#a15541', '#a15541']} // Même couleur que la sidebar
+      colors={gradientColors} // Même couleur que la sidebar / thème
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={[styles.navbar, { 
@@ -44,7 +50,8 @@ export const Navbar: React.FC<NavbarProps> = ({
         paddingBottom: isLandscape ? Math.max(insets.bottom, 8) + 2 : 4,
         minHeight: isLandscape ? 40 : 44,
         paddingRight: isLandscape ? Math.max(insets.right, 8) : 12,
-        paddingLeft: isLandscape ? Math.max(insets.left, 8) : 12
+        paddingLeft: isLandscape ? Math.max(insets.left, 8) : 12,
+        borderBottomColor: isDarkMode ? '#333333' : '#FFFFFF',
       }]}
     >
       <View style={styles.navbarLeft}>

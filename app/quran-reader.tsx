@@ -11,6 +11,7 @@ import {
     Pressable,
     StatusBar,
     StyleSheet,
+    Text,
     useWindowDimensions,
     View
 } from 'react-native';
@@ -109,6 +110,8 @@ export default function QuranReaderScreen() {
     start: number;
     end: number;
   } | null>(null);
+
+  const [isDarkMode, setIsDarkMode] = useState(false);
 
   // Hook pour la lecture audio
   const { isPlaying: isAudioPlaying, isLoading: isAudioLoading, error: audioError, play: playAudio, pause: pauseAudio, stop: stopAudio, seek: seekAudio, currentPage: audioCurrentPage, currentTime: audioCurrentTime, duration: audioDuration, isLooping: isAudioLooping, toggleLoop: toggleAudioLoop, setOnFinished: setAudioOnFinished } = useAudioPlayer();
@@ -273,15 +276,6 @@ export default function QuranReaderScreen() {
   const pageSide = getPageSide(currentPage); // 'left' ou 'right'
   const TOTAL_PAGES = 521;
   const readingProgress = Math.round((currentPage / TOTAL_PAGES) * 100);
-  
-  // Fonction pour calculer la couleur de la barre de progression selon l'avancement
-  const getProgressBarColor = (progress: number): string => {
-    if (progress <= 0) return '#FFFFFF'; // Blanc au début
-    if (progress <= 25) return '#FFD700'; // Jaune doré
-    if (progress <= 50) return '#FFA500'; // Orange
-    if (progress <= 75) return '#FF6347'; // Rouge tomate
-    return '#a15541'; // Marron (couleur du thème) à la fin
-  };
   
   // Afficher la position de la page dans la console (pour debug)
   useEffect(() => {
@@ -492,7 +486,7 @@ export default function QuranReaderScreen() {
   }).current;
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, isDarkMode && styles.containerDark]}>
       <StatusBar hidden={false} barStyle="light-content" translucent={true} />
 
       {/* Navbar en haut */}
@@ -506,6 +500,7 @@ export default function QuranReaderScreen() {
         insets={insets}
         onToggleMenu={toggleMenu}
         pageSide={pageSide}
+        isDarkMode={isDarkMode}
       />
       
       <FlatList
@@ -521,7 +516,7 @@ export default function QuranReaderScreen() {
           style={{ 
             flex: 1,
             marginTop: navbarVisible ? (isLandscape ? Math.max(insets.top, 8) + 40 + 4 : insets.top + 48) : (isLandscape ? Math.max(insets.top, 8) : insets.top),
-            backgroundColor: PAGE_BACKGROUND_COLOR,
+            backgroundColor: isDarkMode ? '#000000' : PAGE_BACKGROUND_COLOR,
             direction: 'ltr' 
           }}
           key={`flatlist-${width}-${height}`}
@@ -535,6 +530,7 @@ export default function QuranReaderScreen() {
                 isLandscape={isLandscape} 
                 insets={insets}
                 navbarVisible={navbarVisible}
+                isDarkMode={isDarkMode}
               />
             </View>
           )}
@@ -578,9 +574,10 @@ export default function QuranReaderScreen() {
           }}
         />
 
-      {/* Barre de progression fine en bas */}
+      {/* Barre de progression fine en bas (lecture globale) */}
       <View
-        pointerEvents="none"
+        // On autorise les clics pour naviguer rapidement dans les pages
+        pointerEvents="auto"
         style={[
           styles.bottomProgressBarContainer,
           {
@@ -588,17 +585,50 @@ export default function QuranReaderScreen() {
           },
         ]}
       >
-        <View style={styles.bottomProgressBarTrack}>
+        <Pressable
+          style={styles.bottomProgressBarPressable}
+          onPress={(event) => {
+            const { locationX, nativeEvent } = event;
+            const trackWidth = nativeEvent?.target ? undefined : undefined;
+            // Comme on ne peut pas mesurer ici, on se base sur la largeur relative de l'écran
+            // locationX est déjà relatif au Pressable, donc on peut utiliser la largeur via width
+            // On utilise useWindowDimensions (width) et on suppose que la barre prend 100% de la largeur de l'écran
+            const ratio = Math.max(0, Math.min(1, locationX / width));
+            const targetPage = Math.min(
+              TOTAL_PAGES,
+              Math.max(1, Math.round(ratio * TOTAL_PAGES))
+            );
+            jumpToPageWithoutToggle(targetPage);
+          }}
+        >
           <View
             style={[
-              styles.bottomProgressBarFill,
-              {
-                width: `${readingProgress}%`,
-                backgroundColor: '#a15541',
-              },
+              styles.bottomProgressBarTrack,
+              isDarkMode && { backgroundColor: '#2b2b2b' },
             ]}
-          />
-        </View>
+          >
+            <View
+              style={[
+                styles.bottomProgressBarFill,
+                {
+                  width: `${readingProgress}%`,
+                  backgroundColor: '#a15541',
+                },
+              ]}
+            />
+          </View>
+          <View style={styles.bottomProgressBarLabelContainer}>
+            <Text
+              style={[
+                styles.bottomProgressBarLabel,
+                isDarkMode && styles.bottomProgressBarLabelDark,
+              ]}
+              allowFontScaling={false}
+            >
+              {currentPage} / {TOTAL_PAGES}
+            </Text>
+          </View>
+        </Pressable>
       </View>
 
       {menuVisible && <Pressable style={styles.overlay} onPress={toggleMenu} />}
@@ -629,6 +659,8 @@ export default function QuranReaderScreen() {
         isAudioPlaying={isAudioPlaying}
         isAudioLoading={isAudioLoading}
         audioError={audioError}
+        isDarkMode={isDarkMode}
+        onToggleDarkMode={() => setIsDarkMode((prev) => !prev)}
       />
       
       {/* Barre de progression audio flottante et déplaçable */}
@@ -637,6 +669,8 @@ export default function QuranReaderScreen() {
           <AudioProgressBar
             currentTime={audioCurrentTime}
             duration={audioDuration}
+            currentPage={audioCurrentPage || currentPage}
+            currentSurahName={currentSurah ? currentSurah.name_ar : null}
             isPlaying={isAudioPlaying}
             isLoading={isAudioLoading}
             onSeek={seekAudio}
@@ -727,6 +761,7 @@ const PAGE_BACKGROUND_COLOR = '#f9f9df';
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: PAGE_BACKGROUND_COLOR, direction: 'ltr' },
+  containerDark: { backgroundColor: '#000000' },
   overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 10 },
   bottomProgressBarContainer: {
     position: 'absolute',
@@ -735,9 +770,12 @@ const styles = StyleSheet.create({
     height: 3,
     zIndex: 2500,
   },
+  bottomProgressBarPressable: {
+    width: '100%',
+  },
   bottomProgressBarTrack: {
     width: '100%',
-    height: '100%',
+    height: 3,
     backgroundColor: '#FFFFFF',
     position: 'relative',
   },
@@ -746,5 +784,19 @@ const styles = StyleSheet.create({
     right: 0,
     height: '100%',
     borderRadius: 0,
+  },
+  bottomProgressBarLabelContainer: {
+    marginTop: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bottomProgressBarLabel: {
+    fontSize: 11,
+    color: '#7a4a35',
+    opacity: 0.8,
+  },
+  bottomProgressBarLabelDark: {
+    color: '#f0f0f0',
+    opacity: 0.8,
   },
 });

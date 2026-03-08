@@ -1,5 +1,4 @@
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import { Animated, FlatList, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import { ARABIC_FONT, SIDEBAR_WIDTH, SIDEBAR_WIDTH_LANDSCAPE } from '../constants';
@@ -31,6 +30,9 @@ interface SidebarProps {
   isAudioPlaying: boolean;
   isAudioLoading: boolean;
   audioError: string | null;
+  // Préférences d'affichage
+  isDarkMode?: boolean;
+  onToggleDarkMode?: () => void;
 }
 
 
@@ -60,6 +62,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   isAudioPlaying,
   isAudioLoading,
   audioError,
+  isDarkMode = false,
+  onToggleDarkMode,
 }) => {
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const isLandscape = screenWidth > screenHeight;
@@ -80,7 +84,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         style={[
           styles.sidebar,
           {
-            backgroundColor: '#a15541',
+            backgroundColor: isDarkMode ? '#111111' : '#a15541',
             paddingTop: insets.top + 48 + 8,
             paddingBottom: bottomSafeArea + 12,
             paddingLeft: 20 + landscapeNavMargin,
@@ -108,7 +112,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </TouchableOpacity>
           <TouchableOpacity style={styles.menuItem} onPress={() => onJumpToPage(lastReadPage)} activeOpacity={0.7}>
             <View style={[styles.menuItemContent, { flexShrink: 0 }]}>
-              <Text style={[styles.menuItemText, { fontSize: menuFontSize }]} allowFontScaling={false} numberOfLines={1}>العودة إلى علامة القراءة</Text>
+              <View style={{ flexDirection: 'column', alignItems: 'flex-end' }}>
+                <Text style={[styles.menuItemText, { fontSize: menuFontSize }]} allowFontScaling={false} numberOfLines={1}>
+                  العودة إلى علامة القراءة
+                </Text>
+                {lastReadPage && (
+                  <Text style={[styles.menuItemSubText, { fontSize: menuFontSize - 2 }]} allowFontScaling={false} numberOfLines={1}>
+                    صفحة {lastReadPage}
+                  </Text>
+                )}
+              </View>
               <Ionicons name="bookmark" size={22} color="#FFFFFF" style={styles.menuIcon} />
             </View>
           </TouchableOpacity>
@@ -177,6 +190,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </View>
             </TouchableOpacity>
           )}
+          <View style={styles.switchRow}>
+            <Text style={[styles.switchLabel, { fontSize: switchFontSize }]} allowFontScaling={false} numberOfLines={1}>
+              الوضع الليلي
+            </Text>
+            <Switch
+              value={isDarkMode}
+              onValueChange={onToggleDarkMode}
+              thumbColor="#FFFFFF"
+              trackColor={{ false: 'rgba(255,255,255,0.3)', true: '#FFFFFF' }}
+            />
+          </View>
           <View style={styles.switchRow}>
             <Text style={[styles.switchLabel, { fontSize: switchFontSize }]} allowFontScaling={false} numberOfLines={1}>الوضع الأفقي</Text>
             <Switch
@@ -301,6 +325,12 @@ const styles = StyleSheet.create({
     color: '#FFFFFF', 
     textAlign: 'right', 
     marginRight: 0,
+    fontFamily: ARABIC_FONT,
+  },
+  menuItemSubText: {
+    color: 'rgba(249, 249, 223, 0.8)',
+    marginTop: 2,
+    textAlign: 'right',
     fontFamily: ARABIC_FONT,
   },
   switchRow: { 
