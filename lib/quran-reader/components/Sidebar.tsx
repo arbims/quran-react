@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import { Animated, FlatList, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import { ARABIC_FONT, SIDEBAR_WIDTH, SIDEBAR_WIDTH_LANDSCAPE } from '../constants';
@@ -30,9 +31,6 @@ interface SidebarProps {
   isAudioPlaying: boolean;
   isAudioLoading: boolean;
   audioError: string | null;
-  // Préférences d'affichage
-  isDarkMode?: boolean;
-  onToggleDarkMode?: () => void;
 }
 
 
@@ -62,8 +60,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
   isAudioPlaying,
   isAudioLoading,
   audioError,
-  isDarkMode = false,
-  onToggleDarkMode,
 }) => {
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const isLandscape = screenWidth > screenHeight;
@@ -80,11 +76,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <Animated.View style={[styles.sidebarContainer, { width: sidebarWidth, transform: [{ translateX: slideAnim }] }]}>
-      <View
+      <LinearGradient
+        colors={['#a15541', '#8b4332', '#6d3424']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
         style={[
           styles.sidebar,
           {
-            backgroundColor: isDarkMode ? '#111111' : '#a15541',
             paddingTop: insets.top + 48 + 8,
             paddingBottom: bottomSafeArea + 12,
             paddingLeft: 20 + landscapeNavMargin,
@@ -116,11 +114,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <Text style={[styles.menuItemText, { fontSize: menuFontSize }]} allowFontScaling={false} numberOfLines={1}>
                   العودة إلى علامة القراءة
                 </Text>
-                {lastReadPage && (
-                  <Text style={[styles.menuItemSubText, { fontSize: menuFontSize - 2 }]} allowFontScaling={false} numberOfLines={1}>
-                    صفحة {lastReadPage}
-                  </Text>
-                )}
               </View>
               <Ionicons name="bookmark" size={22} color="#FFFFFF" style={styles.menuIcon} />
             </View>
@@ -191,17 +184,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </TouchableOpacity>
           )}
           <View style={styles.switchRow}>
-            <Text style={[styles.switchLabel, { fontSize: switchFontSize }]} allowFontScaling={false} numberOfLines={1}>
-              الوضع الليلي
-            </Text>
-            <Switch
-              value={isDarkMode}
-              onValueChange={onToggleDarkMode}
-              thumbColor="#FFFFFF"
-              trackColor={{ false: 'rgba(255,255,255,0.3)', true: '#FFFFFF' }}
-            />
-          </View>
-          <View style={styles.switchRow}>
             <Text style={[styles.switchLabel, { fontSize: switchFontSize }]} allowFontScaling={false} numberOfLines={1}>الوضع الأفقي</Text>
             <Switch
               value={landscapeEnabled}
@@ -258,7 +240,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           />
         </>
       )}
-      </View>
+      </LinearGradient>
     </Animated.View>
   );
 };

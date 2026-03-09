@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
+import { activateKeepAwake, deactivateKeepAwake } from 'expo-keep-awake';
 import * as NavigationBar from 'expo-navigation-bar';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
@@ -110,8 +110,6 @@ export default function QuranReaderScreen() {
     start: number;
     end: number;
   } | null>(null);
-
-  const [isDarkMode, setIsDarkMode] = useState(false);
 
   // Hook pour la lecture audio
   const { isPlaying: isAudioPlaying, isLoading: isAudioLoading, error: audioError, play: playAudio, pause: pauseAudio, stop: stopAudio, seek: seekAudio, currentPage: audioCurrentPage, currentTime: audioCurrentTime, duration: audioDuration, isLooping: isAudioLooping, toggleLoop: toggleAudioLoop, setOnFinished: setAudioOnFinished } = useAudioPlayer();
@@ -335,7 +333,7 @@ export default function QuranReaderScreen() {
     NavigationBar.setBackgroundColorAsync('#f9f9df'); // Beige clair, même que le fond
     
     // Empêcher l'écran de se mettre en veille
-    activateKeepAwakeAsync();
+    activateKeepAwake();
     
     // Nettoyer à la sortie
     return () => {
@@ -486,7 +484,7 @@ export default function QuranReaderScreen() {
   }).current;
 
   return (
-    <View style={[styles.container, isDarkMode && styles.containerDark]}>
+    <View style={styles.container}>
       <StatusBar hidden={false} barStyle="light-content" translucent={true} />
 
       {/* Navbar en haut */}
@@ -500,7 +498,6 @@ export default function QuranReaderScreen() {
         insets={insets}
         onToggleMenu={toggleMenu}
         pageSide={pageSide}
-        isDarkMode={isDarkMode}
       />
       
       <FlatList
@@ -516,7 +513,7 @@ export default function QuranReaderScreen() {
           style={{ 
             flex: 1,
             marginTop: navbarVisible ? (isLandscape ? Math.max(insets.top, 8) + 40 + 4 : insets.top + 48) : (isLandscape ? Math.max(insets.top, 8) : insets.top),
-            backgroundColor: isDarkMode ? '#000000' : PAGE_BACKGROUND_COLOR,
+            backgroundColor: PAGE_BACKGROUND_COLOR,
             direction: 'ltr' 
           }}
           key={`flatlist-${width}-${height}`}
@@ -530,7 +527,6 @@ export default function QuranReaderScreen() {
                 isLandscape={isLandscape} 
                 insets={insets}
                 navbarVisible={navbarVisible}
-                isDarkMode={isDarkMode}
               />
             </View>
           )}
@@ -601,12 +597,7 @@ export default function QuranReaderScreen() {
             jumpToPageWithoutToggle(targetPage);
           }}
         >
-          <View
-            style={[
-              styles.bottomProgressBarTrack,
-              isDarkMode && { backgroundColor: '#2b2b2b' },
-            ]}
-          >
+          <View style={styles.bottomProgressBarTrack}>
             <View
               style={[
                 styles.bottomProgressBarFill,
@@ -619,10 +610,7 @@ export default function QuranReaderScreen() {
           </View>
           <View style={styles.bottomProgressBarLabelContainer}>
             <Text
-              style={[
-                styles.bottomProgressBarLabel,
-                isDarkMode && styles.bottomProgressBarLabelDark,
-              ]}
+              style={styles.bottomProgressBarLabel}
               allowFontScaling={false}
             >
               {currentPage} / {TOTAL_PAGES}
@@ -659,8 +647,6 @@ export default function QuranReaderScreen() {
         isAudioPlaying={isAudioPlaying}
         isAudioLoading={isAudioLoading}
         audioError={audioError}
-        isDarkMode={isDarkMode}
-        onToggleDarkMode={() => setIsDarkMode((prev) => !prev)}
       />
       
       {/* Barre de progression audio flottante et déplaçable */}
@@ -761,7 +747,6 @@ const PAGE_BACKGROUND_COLOR = '#f9f9df';
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: PAGE_BACKGROUND_COLOR, direction: 'ltr' },
-  containerDark: { backgroundColor: '#000000' },
   overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 10 },
   bottomProgressBarContainer: {
     position: 'absolute',
@@ -793,10 +778,6 @@ const styles = StyleSheet.create({
   bottomProgressBarLabel: {
     fontSize: 11,
     color: '#7a4a35',
-    opacity: 0.8,
-  },
-  bottomProgressBarLabelDark: {
-    color: '#f0f0f0',
     opacity: 0.8,
   },
 });

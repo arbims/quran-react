@@ -103,3 +103,14 @@ export const getPageSide = (pageNumber: number): 'left' | 'right' => {
   return pageNumber % 2 === 0 ? 'left' : 'right';
 };
 
+/**
+ * Calcule le numéro du hizb pour une page donnée
+ * Le Coran contient 60 hizbs (30 juz × 2 hizbs par juz)
+ * Chaque hizb contient environ 521/60 ≈ 8.68 pages
+ */
+export const getHizbNumber = (pageNumber: number): number => {
+  if (pageNumber < 1 || pageNumber > 521) return 1;
+  // Calculer le hizb (arrondi vers le haut)
+  return Math.ceil((pageNumber / 521) * 60);
+};
+

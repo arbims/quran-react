@@ -3,6 +3,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Surah } from '../types';
+import { getHizbNumber } from '../utils';
 
 interface NavbarProps {
   visible: boolean;
@@ -14,7 +15,6 @@ interface NavbarProps {
   insets: { top: number; bottom: number; left: number; right: number };
   onToggleMenu: () => void;
   pageSide: 'left' | 'right';
-  isDarkMode?: boolean;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -27,7 +27,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   insets,
   onToggleMenu,
   pageSide,
-  isDarkMode = false,
 }) => {
   if (!visible) return null;
 
@@ -36,26 +35,26 @@ export const Navbar: React.FC<NavbarProps> = ({
     console.log('Navbar - currentPage:', currentPage, 'pageSide:', pageSide);
   }, [currentPage, pageSide]);
 
-  const gradientColors = isDarkMode
-    ? ['#1b1b1f', '#111111', '#111111']
-    : ['#a15541', '#a15541', '#a15541'];
+  const gradientColors = ['#a15541', '#8b4332', '#6d3424'];
+  const hizbNumber = getHizbNumber(currentPage);
 
   return (
     <LinearGradient
-      colors={gradientColors} // Même couleur que la sidebar / thème
+      colors={gradientColors}
       start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
+      end={{ x: 0, y: 1 }}
       style={[styles.navbar, { 
         paddingTop: isLandscape ? Math.max(insets.top, 8) + 4 : insets.top + 4,
         paddingBottom: isLandscape ? Math.max(insets.bottom, 8) + 2 : 4,
         minHeight: isLandscape ? 40 : 44,
         paddingRight: isLandscape ? Math.max(insets.right, 8) : 12,
         paddingLeft: isLandscape ? Math.max(insets.left, 8) : 12,
-        borderBottomColor: isDarkMode ? '#333333' : '#FFFFFF',
+        borderBottomColor: '#FFFFFF',
       }]}
     >
       <View style={styles.navbarLeft}>
         <Text style={styles.navbarPageNumber} allowFontScaling={false}>صفحة {currentPage}</Text>
+        <Text style={styles.navbarHizbNumber} allowFontScaling={false}>الحزب {hizbNumber}</Text>
       </View>
       <View style={styles.navbarCenter}>
         {/* Effet de livre ouvert - design réaliste */}
@@ -163,6 +162,14 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     letterSpacing: 0.5,
     fontFamily: 'NotoKufiArabic_400Regular',
+  },
+  navbarHizbNumber: {
+    fontSize: 12,
+    color: '#f9f9df',
+    letterSpacing: 0.3,
+    fontFamily: 'NotoKufiArabic_400Regular',
+    marginTop: 2,
+    opacity: 0.9,
   },
   navbarCenter: {
     flex: 1,
